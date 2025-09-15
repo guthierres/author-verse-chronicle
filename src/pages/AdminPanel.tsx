@@ -1,5 +1,3 @@
-// src/pages/AdminPanel.tsx
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,11 +41,10 @@ const AdminPanel = () => {
         id,
         content,
         created_at,
+        is_active,
         authors (name)
       `)
       .eq('is_approved', false)
-      // Remova esta linha para que frases rejeitadas continuem a ser contadas como pendentes
-      // .eq('is_active', true) 
       .order('created_at', { ascending: true });
 
     setPendingQuotes(data || []);
@@ -99,7 +96,7 @@ const AdminPanel = () => {
   const approveQuote = async (id: string) => {
     const { error } = await supabase
       .from('quotes')
-      .update({ is_approved: true })
+      .update({ is_approved: true, is_active: true }) // Adicionar is_active: true
       .eq('id', id);
 
     if (!error) {
@@ -235,6 +232,7 @@ const AdminPanel = () => {
                         <Button variant="destructive" size="sm" onClick={() => rejectQuote(quote.id)}>
                           <X className="w-4 h-4" />
                         </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
