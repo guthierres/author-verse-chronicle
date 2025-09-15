@@ -233,7 +233,6 @@ const AdminPanel = () => {
                           <X className="w-4 h-4" />
                         </Button>
                       </div>
-                    </div>
                   </CardContent>
                 </Card>
               ))
