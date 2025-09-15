@@ -41,10 +41,10 @@ const AdminPanel = () => {
         id,
         content,
         created_at,
-        is_active,
         authors (name)
       `)
       .eq('is_approved', false)
+      .eq('is_active', true)
       .order('created_at', { ascending: true });
 
     setPendingQuotes(data || []);
@@ -96,7 +96,7 @@ const AdminPanel = () => {
   const approveQuote = async (id: string) => {
     const { error } = await supabase
       .from('quotes')
-      .update({ is_approved: true, is_active: true })
+      .update({ is_approved: true })
       .eq('id', id);
 
     if (!error) {
@@ -158,7 +158,7 @@ const AdminPanel = () => {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <Card>
             <CardContent className="pt-6 text-center">
               <BarChart3 className="w-8 h-8 mx-auto mb-2 text-primary" />
