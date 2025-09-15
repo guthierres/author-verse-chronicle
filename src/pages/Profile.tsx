@@ -401,7 +401,9 @@ const Profile = () => {
                         Salvar Alterações
                       </Button>
                     </form>
+                 // Re-digite estas linhas manualmente para garantir que não haja caracteres ocultos
                   </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>
