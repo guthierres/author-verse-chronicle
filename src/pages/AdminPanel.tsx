@@ -1,22 +1,22 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Check, X, Users, Quote, MessageCircle, BarChart3 } from 'lucide-react';
+import { Loader2, Check, X, Quote, MessageCircle, BarChart3 } from 'lucide-react';
 
 const AdminPanel = () => {
-  const [pendingQuotes, setPendingQuotes] = useState([]);
-  const [pendingComments, setPendingComments] = useState([]);
-  const [authors, setAuthors] = useState([]);
+  const [pendingQuotes, setPendingQuotes] = useState<any[]>([]);
+  const [pendingComments, setPendingComments] = useState<any[]>([]);
+  const [authors, setAuthors] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalAuthors: 0,
     totalQuotes: 0,
     totalComments: 0,
     pendingQuotes: 0,
-    pendingComments: 0
+    pendingComments: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -29,13 +29,13 @@ const AdminPanel = () => {
       fetchPendingQuotes(),
       fetchPendingComments(),
       fetchAuthors(),
-      fetchStats()
+      fetchStats(),
     ]);
     setLoading(false);
   };
 
   const fetchPendingQuotes = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('quotes')
       .select(`
         id,
@@ -43,15 +43,16 @@ const AdminPanel = () => {
         created_at,
         authors (name)
       `)
-      .eq('is_approved', false)
       .eq('is_active', true)
+      .or('is_approved.eq.false,is_approved.is.null')
       .order('created_at', { ascending: true });
 
+    if (error) console.error('Erro ao buscar frases:', error);
     setPendingQuotes(data || []);
   };
 
   const fetchPendingComments = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('comments')
       .select(`
         id,
@@ -60,71 +61,62 @@ const AdminPanel = () => {
         authors (name),
         quotes (content)
       `)
-      .eq('is_approved', false)
+      .or('is_approved.eq.false,is_approved.is.null')
       .order('created_at', { ascending: true });
 
+    if (error) console.error('Erro ao buscar comentários:', error);
     setPendingComments(data || []);
   };
 
   const fetchAuthors = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('authors')
       .select('*')
       .order('created_at', { ascending: false });
 
+    if (error) console.error('Erro ao buscar autores:', error);
     setAuthors(data || []);
   };
 
   const fetchStats = async () => {
-    const [authorsCount, quotesCount, commentsCount, pendingQuotesCount, pendingCommentsCount] = await Promise.all([
-      supabase.from('authors').select('*', { count: 'exact', head: true }),
-      supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('is_approved', true),
-      supabase.from('comments').select('*', { count: 'exact', head: true }).eq('is_approved', true),
-      supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('is_approved', false),
-      supabase.from('comments').select('*', { count: 'exact', head: true }).eq('is_approved', false)
-    ]);
+    const [authorsCount, quotesCount, commentsCount, pendingQuotesCount, pendingCommentsCount] =
+      await Promise.all([
+        supabase.from('authors').select('*', { count: 'exact', head: true }),
+        supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('is_approved', true),
+        supabase.from('comments').select('*', { count: 'exact', head: true }).eq('is_approved', true),
+        supabase.from('quotes').select('*', { count: 'exact', head: true }).or('is_approved.eq.false,is_approved.is.null'),
+        supabase.from('comments').select('*', { count: 'exact', head: true }).or('is_approved.eq.false,is_approved.is.null'),
+      ]);
 
     setStats({
       totalAuthors: authorsCount.count || 0,
       totalQuotes: quotesCount.count || 0,
       totalComments: commentsCount.count || 0,
       pendingQuotes: pendingQuotesCount.count || 0,
-      pendingComments: pendingCommentsCount.count || 0
+      pendingComments: pendingCommentsCount.count || 0,
     });
   };
 
   const approveQuote = async (id: string) => {
-    const { error } = await supabase
-      .from('quotes')
-      .update({ is_approved: true })
-      .eq('id', id);
-
+    const { error } = await supabase.from('quotes').update({ is_approved: true }).eq('id', id);
     if (!error) {
-      toast({ title: "Frase aprovada!" });
+      toast({ title: 'Frase aprovada!' });
       fetchAllData();
     }
   };
 
   const rejectQuote = async (id: string) => {
-    const { error } = await supabase
-      .from('quotes')
-      .update({ is_active: false })
-      .eq('id', id);
-
+    const { error } = await supabase.from('quotes').update({ is_active: false }).eq('id', id);
     if (!error) {
-      toast({ title: "Frase rejeitada!" });
+      toast({ title: 'Frase rejeitada!' });
       fetchAllData();
     }
   };
 
   const approveComment = async (id: string) => {
-    const { error } = await supabase
-      .from('comments')
-      .update({ is_approved: true })
-      .eq('id', id);
-
+    const { error } = await supabase.from('comments').update({ is_approved: true }).eq('id', id);
     if (!error) {
-      toast({ title: "Comentário aprovado!" });
+      toast({ title: 'Comentário aprovado!' });
       fetchAllData();
     }
   };
@@ -215,14 +207,15 @@ const AdminPanel = () => {
                 </CardContent>
               </Card>
             ) : (
-              pendingQuotes.map((quote: any) => (
+              pendingQuotes.map((quote) => (
                 <Card key={quote.id}>
                   <CardContent className="pt-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <blockquote className="text-lg mb-2">"{quote.content}"</blockquote>
                         <p className="text-sm text-muted-foreground">
-                          Por {quote.authors.name} • {new Date(quote.created_at).toLocaleDateString('pt-BR')}
+                          Por {quote.authors?.name || 'Desconhecido'} •{' '}
+                          {new Date(quote.created_at).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
                       <div className="flex gap-2 ml-4">
@@ -248,12 +241,13 @@ const AdminPanel = () => {
                 </CardContent>
               </Card>
             ) : (
-              pendingComments.map((comment: any) => (
+              pendingComments.map((comment) => (
                 <Card key={comment.id}>
                   <CardContent className="pt-4">
                     <p className="mb-2">{comment.content}</p>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Por {comment.authors.name} em "{comment.quotes.content.substring(0, 50)}..."
+                      Por {comment.authors?.name || 'Desconhecido'} em "
+                      {comment.quotes?.content?.substring(0, 50) || 'Frase não encontrada'}..."
                     </p>
                     <Button size="sm" onClick={() => approveComment(comment.id)}>
                       <Check className="w-4 h-4 mr-2" />
@@ -267,7 +261,7 @@ const AdminPanel = () => {
 
           <TabsContent value="authors" className="space-y-4">
             <div className="grid gap-4">
-              {authors.map((author: any) => (
+              {authors.map((author) => (
                 <Card key={author.id}>
                   <CardContent className="pt-4">
                     <div className="flex justify-between items-center">
@@ -275,8 +269,8 @@ const AdminPanel = () => {
                         <h3 className="font-semibold flex items-center gap-2">
                           {author.name}
                           {author.is_verified && <Badge variant="default" className="text-xs">✓</Badge>}
-                          <Badge variant={author.is_active ? "default" : "secondary"}>
-                            {author.is_active ? "Ativo" : "Inativo"}
+                          <Badge variant={author.is_active ? 'default' : 'secondary'}>
+                            {author.is_active ? 'Ativo' : 'Inativo'}
                           </Badge>
                         </h3>
                         <p className="text-sm text-muted-foreground">{author.bio}</p>
@@ -285,11 +279,11 @@ const AdminPanel = () => {
                         </p>
                       </div>
                       <Button
-                        variant={author.is_active ? "destructive" : "default"}
+                        variant={author.is_active ? 'destructive' : 'default'}
                         size="sm"
                         onClick={() => toggleAuthorStatus(author.id, author.is_active)}
                       >
-                        {author.is_active ? "Desativar" : "Ativar"}
+                        {author.is_active ? 'Desativar' : 'Ativar'}
                       </Button>
                     </div>
                   </CardContent>
