@@ -41,10 +41,10 @@ const AdminPanel = () => {
         id,
         content,
         created_at,
+        is_active,
         authors (name)
       `)
       .eq('is_approved', false)
-      .eq('is_active', true)
       .order('created_at', { ascending: true });
 
     setPendingQuotes(data || []);
@@ -75,28 +75,29 @@ const AdminPanel = () => {
     setAuthors(data || []);
   };
 
+  // FUNÇÃO CORRIGIDA PARA CONTAR OS DADOS
   const fetchStats = async () => {
-    const [authorsCount, quotesCount, commentsCount, pendingQuotesCount, pendingCommentsCount] = await Promise.all([
-      supabase.from('authors').select('*', { count: 'exact', head: true }),
-      supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('is_approved', true),
-      supabase.from('comments').select('*', { count: 'exact', head: true }).eq('is_approved', true),
-      supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('is_approved', false),
-      supabase.from('comments').select('*', { count: 'exact', head: true }).eq('is_approved', false)
+    const [authorsResult, quotesResult, commentsResult, pendingQuotesResult, pendingCommentsResult] = await Promise.all([
+      supabase.from('authors').count(),
+      supabase.from('quotes').eq('is_approved', true).count(),
+      supabase.from('comments').eq('is_approved', true).count(),
+      supabase.from('quotes').eq('is_approved', false).count(),
+      supabase.from('comments').eq('is_approved', false).count()
     ]);
 
     setStats({
-      totalAuthors: authorsCount.count || 0,
-      totalQuotes: quotesCount.count || 0,
-      totalComments: commentsCount.count || 0,
-      pendingQuotes: pendingQuotesCount.count || 0,
-      pendingComments: pendingCommentsCount.count || 0
+      totalAuthors: authorsResult.count || 0,
+      totalQuotes: quotesResult.count || 0,
+      totalComments: commentsResult.count || 0,
+      pendingQuotes: pendingQuotesResult.count || 0,
+      pendingComments: pendingCommentsResult.count || 0
     });
   };
 
   const approveQuote = async (id: string) => {
     const { error } = await supabase
       .from('quotes')
-      .update({ is_approved: true })
+      .update({ is_approved: true, is_active: true })
       .eq('id', id);
 
     if (!error) {
@@ -158,7 +159,7 @@ const AdminPanel = () => {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <Card>
             <CardContent className="pt-6 text-center">
               <BarChart3 className="w-8 h-8 mx-auto mb-2 text-primary" />
