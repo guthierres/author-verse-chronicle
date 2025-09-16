@@ -34,7 +34,7 @@ const App = () => (
               <Route path="/author/:id" element={<AuthorProfile />} />
               <Route path="/authors" element={<Authors />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/admin-panel-secret-2024" element={<AdminPanel />} />
+              <Route path="/admin" element={<AdminPanel />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

@@ -4,13 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Check, X, Users, Quote, MessageCircle, BarChart3 } from 'lucide-react';
+import { Loader2, Check, X, Users, Quote, MessageCircle, BarChart3, Shield, UserPlus } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Navigate } from 'react-router-dom';
 
 const AdminPanel = () => {
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [pendingQuotes, setPendingQuotes] = useState([]);
   const [pendingComments, setPendingComments] = useState([]);
   const [authors, setAuthors] = useState([]);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
   const [stats, setStats] = useState({
     totalAuthors: 0,
     totalQuotes: 0,
@@ -19,6 +24,35 @@ const AdminPanel = () => {
     pendingComments: 0
   });
   const [loading, setLoading] = useState(true);
+
+  // Redirect non-admin users
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-semibold mb-2">Acesso Negado</h2>
+            <p className="text-muted-foreground">
+              Você não tem permissão para acessar o painel administrativo.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   useEffect(() => {
     fetchAllData();
@@ -35,41 +69,69 @@ const AdminPanel = () => {
   };
 
   const fetchPendingQuotes = async () => {
-    const { data, error } = await supabase
-      .from('quotes')
-      .select(`
-        id,
-        content,
-        created_at,
-        authors!inner (name)
-      `)
-      .eq('is_approved', false)
-      .eq('is_active', true)
-      .order('created_at', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('quotes')
+        .select(`
+          id,
+          content,
+          created_at,
+          authors (
+            name,
+            user_id
+          )
+        `)
+        .eq('is_approved', false)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true });
 
-    if (error) {
+      if (error) {
+        console.error('Erro ao buscar frases pendentes:', error);
+        toast({
+          title: "Erro ao carregar frases pendentes",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setPendingQuotes(data || []);
+      }
+    } catch (error) {
       console.error('Erro ao buscar frases pendentes:', error);
     }
-    setPendingQuotes(data || []);
   };
 
   const fetchPendingComments = async () => {
-    const { data, error } = await supabase
-      .from('comments')
-      .select(`
-        id,
-        content,
-        created_at,
-        authors!inner (name),
-        quotes!inner (content)
-      `)
-      .eq('is_approved', false)
-      .order('created_at', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          content,
+          created_at,
+          authors (
+            name,
+            user_id
+          ),
+          quotes (
+            content
+          )
+        `)
+        .eq('is_approved', false)
+        .order('created_at', { ascending: true });
 
-    if (error) {
+      if (error) {
+        console.error('Erro ao buscar comentários pendentes:', error);
+        toast({
+          title: "Erro ao carregar comentários pendentes",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setPendingComments(data || []);
+      }
+    } catch (error) {
       console.error('Erro ao buscar comentários pendentes:', error);
     }
-    setPendingComments(data || []);
   };
 
   const fetchAuthors = async () => {
@@ -147,6 +209,62 @@ const AdminPanel = () => {
     }
   };
 
+  const promoteToAdmin = async () => {
+    if (!newAdminEmail.trim()) {
+      toast({
+        title: "Email obrigatório",
+        description: "Digite o email do usuário para promover a admin",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // First check if user exists by email in authors table
+      const { data: authorData, error: authorError } = await supabase
+        .from('authors')
+        .select('user_id, name')
+        .eq('name', newAdminEmail)
+        .single();
+
+      if (authorError || !authorData) {
+        toast({
+          title: "Usuário não encontrado",
+          description: "Email não encontrado no sistema",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Insert or update user role to admin
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: authorData.user_id,
+          role: 'admin'
+        });
+
+      if (roleError) {
+        toast({
+          title: "Erro ao promover usuário",
+          description: roleError.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({ title: "Usuário promovido a administrador com sucesso!" });
+        setNewAdminEmail('');
+        fetchAllData();
+      }
+    } catch (error) {
+      console.error('Erro ao promover usuário:', error);
+      toast({
+        title: "Erro inesperado",
+        description: "Tente novamente em instantes",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -206,7 +324,7 @@ const AdminPanel = () => {
         </div>
 
         <Tabs defaultValue="quotes" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
+          <TabsList className="grid w-full grid-cols-4 text-xs sm:text-sm">
             <TabsTrigger value="quotes" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Frases Pendentes ({stats.pendingQuotes})</span>
               <span className="sm:hidden">Frases ({stats.pendingQuotes})</span>
@@ -218,6 +336,10 @@ const AdminPanel = () => {
             <TabsTrigger value="authors" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Autores ({stats.totalAuthors})</span>
               <span className="sm:hidden">Autores ({stats.totalAuthors})</span>
+            </TabsTrigger>
+            <TabsTrigger value="admin" className="text-xs sm:text-sm">
+              <span className="hidden sm:inline">Admins</span>
+              <span className="sm:hidden">Admin</span>
             </TabsTrigger>
           </TabsList>
 
@@ -310,6 +432,55 @@ const AdminPanel = () => {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          <TabsContent value="admin" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  Promover Usuário a Admin
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Digite o email do usuário (nome usado no cadastro) para promovê-lo a administrador.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Email do usuário..."
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button onClick={promoteToAdmin}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Promover
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Configurações de Segurança</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Proteção de Senha Vazada</p>
+                      <p className="text-sm text-muted-foreground">
+                        Ative a proteção contra senhas vazadas no painel do Supabase
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-amber-600">
+                      Recomendado
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
