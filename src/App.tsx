@@ -12,6 +12,7 @@ import QuoteDetail from "./pages/QuoteDetail";
 import AuthorProfile from "./pages/AuthorProfile";
 import Profile from "./pages/Profile";
 import AdminPanel from "./pages/AdminPanel";
+import Authors from "./pages/Authors";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/new-quote" element={<NewQuote />} />
               <Route path="/quote/:id" element={<QuoteDetail />} />
               <Route path="/author/:id" element={<AuthorProfile />} />
+              <Route path="/authors" element={<Authors />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin-panel-secret-2024" element={<AdminPanel />} />
               <Route path="*" element={<NotFound />} />

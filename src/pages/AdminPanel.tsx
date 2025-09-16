@@ -35,34 +35,40 @@ const AdminPanel = () => {
   };
 
   const fetchPendingQuotes = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('quotes')
       .select(`
         id,
         content,
         created_at,
-        authors (name)
+        authors!inner (name)
       `)
       .eq('is_approved', false)
       .eq('is_active', true)
       .order('created_at', { ascending: true });
 
+    if (error) {
+      console.error('Erro ao buscar frases pendentes:', error);
+    }
     setPendingQuotes(data || []);
   };
 
   const fetchPendingComments = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('comments')
       .select(`
         id,
         content,
         created_at,
-        authors (name),
-        quotes (content)
+        authors!inner (name),
+        quotes!inner (content)
       `)
       .eq('is_approved', false)
       .order('created_at', { ascending: true });
 
+    if (error) {
+      console.error('Erro ao buscar comentários pendentes:', error);
+    }
     setPendingComments(data || []);
   };
 
@@ -150,20 +156,19 @@ const AdminPanel = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-accent/20 py-8">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Painel Administrativo</h1>
-          <p className="text-muted-foreground">Gerencie conteúdo e usuários da plataforma</p>
+    <div className="min-h-screen bg-gradient-to-b from-background to-accent/20 py-4 sm:py-8">
+      <div className="container mx-auto px-3 sm:px-4 max-w-6xl">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Painel Administrativo</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">Gerencie conteúdo e usuários da plataforma</p>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Card>
-            <CardContent className="pt-6 text-center">
-              <BarChart3 className="w-8 h-8 mx-auto mb-2 text-primary" />
-              <p className="text-2xl font-bold">{stats.totalAuthors}</p>
-              <p className="text-sm text-muted-foreground">Autores</p>
+            <CardContent className="pt-4 sm:pt-6 text-center">
+              <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-primary" />
+              <p className="text-xl sm:text-2xl font-bold">{stats.totalAuthors}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Autores</p>
             </CardContent>
           </Card>
           <Card>
@@ -201,10 +206,19 @@ const AdminPanel = () => {
         </div>
 
         <Tabs defaultValue="quotes" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="quotes">Frases Pendentes ({stats.pendingQuotes})</TabsTrigger>
-            <TabsTrigger value="comments">Comentários ({stats.pendingComments})</TabsTrigger>
-            <TabsTrigger value="authors">Autores ({stats.totalAuthors})</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
+            <TabsTrigger value="quotes" className="text-xs sm:text-sm">
+              <span className="hidden sm:inline">Frases Pendentes ({stats.pendingQuotes})</span>
+              <span className="sm:hidden">Frases ({stats.pendingQuotes})</span>
+            </TabsTrigger>
+            <TabsTrigger value="comments" className="text-xs sm:text-sm">
+              <span className="hidden sm:inline">Comentários ({stats.pendingComments})</span>
+              <span className="sm:hidden">Coment. ({stats.pendingComments})</span>
+            </TabsTrigger>
+            <TabsTrigger value="authors" className="text-xs sm:text-sm">
+              <span className="hidden sm:inline">Autores ({stats.totalAuthors})</span>
+              <span className="sm:hidden">Autores ({stats.totalAuthors})</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="quotes" className="space-y-4">

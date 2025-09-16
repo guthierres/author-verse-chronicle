@@ -221,44 +221,44 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         {/* Author info */}
         <div className="flex items-center space-x-3 mb-4">
           <Link to={`/author/${quote.authors.id}`}>
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
               <AvatarImage src={quote.authors.avatar_url} />
-              <AvatarFallback>
+              <AvatarFallback className="text-xs sm:text-sm">
                 {quote.authors.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
           </Link>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
               <Link 
                 to={`/author/${quote.authors.id}`} 
-                className="font-semibold hover:text-primary transition-colors"
+                className="font-semibold hover:text-primary transition-colors text-sm sm:text-base truncate"
               >
                 {quote.authors.name}
               </Link>
               {quote.authors.is_verified && (
-                <Badge variant="secondary" className="text-xs">
-                  ✓ Verificado
+                <Badge variant="secondary" className="text-xs flex-shrink-0">
+                  ✓
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">{timeAgo}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">{timeAgo}</p>
           </div>
         </div>
 
         {/* Quote content */}
         <div className="mb-4">
-          <blockquote className="text-lg leading-relaxed text-foreground">
-            "{displayContent}"
+          <blockquote className="text-base sm:text-lg leading-relaxed text-foreground">
+            "{displayContent}"{shouldTruncate ? '' : '.'}
           </blockquote>
           {shouldTruncate && (
             <Link 
               to={`/quote/${quote.id}`}
-              className="inline-block mt-2 text-primary hover:underline font-medium"
+              className="inline-block mt-2 text-primary hover:underline font-medium text-sm"
             >
               Ler completo
             </Link>
@@ -266,8 +266,8 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t gap-3 sm:gap-0">
+          <div className="flex items-center space-x-2 sm:space-x-4 flex-wrap">
             <Button
               variant="ghost"
               size="sm"
@@ -276,19 +276,22 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
               className={`${hasReacted ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-red-500'}`}
             >
               <Heart className={`w-4 h-4 mr-1 ${hasReacted ? 'fill-current' : ''}`} />
-              {reactionCount}
+              <span className="hidden xs:inline">{reactionCount}</span>
+              <span className="xs:hidden">{reactionCount > 0 ? reactionCount : ''}</span>
             </Button>
 
             <Button variant="ghost" size="sm" asChild>
               <Link to={`/quote/${quote.id}#comments`}>
                 <MessageCircle className="w-4 h-4 mr-1" />
-                {commentCount}
+                <span className="hidden xs:inline">{commentCount}</span>
+                <span className="xs:hidden">{commentCount > 0 ? commentCount : ''}</span>
               </Link>
             </Button>
 
             <div className="flex items-center text-sm text-muted-foreground">
               <Eye className="w-4 h-4 mr-1" />
-              {quote.views_count || 0}
+              <span className="hidden xs:inline">{quote.views_count || 0}</span>
+              <span className="xs:hidden">{(quote.views_count || 0) > 0 ? (quote.views_count || 0) : ''}</span>
             </div>
           </div>
 
@@ -296,7 +299,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm">
                 <Share2 className="w-4 h-4 mr-1" />
-                Compartilhar
+                <span className="hidden sm:inline">Compartilhar</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
