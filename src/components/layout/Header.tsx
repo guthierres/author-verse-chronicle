@@ -11,11 +11,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Quote, User, PlusCircle, LogOut, Settings, Shield } from 'lucide-react';
+import { Quote, User, PlusCircle, LogOut, Settings, Shield, Menu } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const Header = () => {
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -23,27 +25,27 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
       <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-primary to-purple-600 rounded-full flex items-center justify-center">
-            <Quote className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-violet-500 via-purple-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+            <Quote className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
-          <span className="font-bold text-lg sm:text-xl bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent hidden xs:block">
-            Frase de Autor
+          <span className="font-bold text-xl sm:text-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+            ParaFrase
           </span>
         </Link>
 
         <nav className="hidden sm:flex items-center space-x-4 lg:space-x-6">
           <Link 
             to="/" 
-            className="text-muted-foreground hover:text-primary transition-colors text-sm lg:text-base"
+            className="text-muted-foreground hover:text-primary transition-colors text-sm lg:text-base font-medium"
           >
             Timeline
           </Link>
           <Link 
             to="/authors" 
-            className="text-muted-foreground hover:text-primary transition-colors text-sm lg:text-base"
+            className="text-muted-foreground hover:text-primary transition-colors text-sm lg:text-base font-medium"
           >
             Autores
           </Link>
@@ -52,15 +54,76 @@ const Header = () => {
         <div className="flex items-center space-x-2 sm:space-x-4">
           {user ? (
             <>
-              <Button asChild size="sm" className="hidden sm:flex">
+              <Button asChild size="sm" className="hidden sm:flex bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700">
                 <Link to="/new-quote">
                   <PlusCircle className="w-4 h-4 mr-2" />
                   Nova Frase
                 </Link>
               </Button>
 
+              {/* Mobile Menu */}
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild className="sm:hidden">
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                  <nav className="flex flex-col space-y-4 mt-8">
+                    <Link 
+                      to="/" 
+                      className="text-lg font-medium hover:text-primary transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Timeline
+                    </Link>
+                    <Link 
+                      to="/authors" 
+                      className="text-lg font-medium hover:text-primary transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Autores
+                    </Link>
+                    <Link 
+                      to="/new-quote" 
+                      className="text-lg font-medium hover:text-primary transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Nova Frase
+                    </Link>
+                    <Link 
+                      to="/profile" 
+                      className="text-lg font-medium hover:text-primary transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Perfil
+                    </Link>
+                    {isAdmin && (
+                      <Link 
+                        to="/admin" 
+                        className="text-lg font-medium hover:text-primary transition-colors"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Admin Panel
+                      </Link>
+                    )}
+                    <Button 
+                      onClick={() => {
+                        handleSignOut();
+                        setMobileMenuOpen(false);
+                      }}
+                      variant="outline"
+                      className="justify-start"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sair
+                    </Button>
+                  </nav>
+                </SheetContent>
+              </Sheet>
+
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger asChild className="hidden sm:flex">
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src="" alt="Avatar" />
@@ -86,12 +149,6 @@ const Header = () => {
                       Perfil
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="sm:hidden">
-                    <Link to="/new-quote" className="cursor-pointer">
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Nova Frase
-                    </Link>
-                  </DropdownMenuItem>
                   {isAdmin && (
                     <>
                       <DropdownMenuSeparator />
@@ -112,7 +169,7 @@ const Header = () => {
               </DropdownMenu>
             </>
           ) : (
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700">
               <Link to="/auth">Entrar</Link>
             </Button>
           )}

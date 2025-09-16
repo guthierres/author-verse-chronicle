@@ -5,8 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Check, X, Users, Quote, MessageCircle, BarChart3, Shield, UserPlus } from 'lucide-react';
+import { Loader2, Check, X, Users, Quote, MessageCircle, BarChart3, Shield, UserPlus, Settings, Megaphone } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 
@@ -16,6 +19,14 @@ const AdminPanel = () => {
   const [pendingComments, setPendingComments] = useState([]);
   const [authors, setAuthors] = useState([]);
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [adSettings, setAdSettings] = useState({
+    ads_enabled: false,
+    google_adsense_client: '',
+    google_adsense_slot: '',
+    ads_frequency: 3,
+    ads_responsive: true,
+    ads_mobile_enabled: true
+  });
   const [stats, setStats] = useState({
     totalAuthors: 0,
     totalQuotes: 0,
@@ -63,9 +74,62 @@ const AdminPanel = () => {
       fetchPendingQuotes(),
       fetchPendingComments(),
       fetchAuthors(),
-      fetchStats()
+      fetchStats(),
+      fetchAdSettings()
     ]);
     setLoading(false);
+  };
+
+  const fetchAdSettings = async () => {
+    try {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('key, value')
+        .in('key', ['ads_enabled', 'google_adsense_client', 'google_adsense_slot', 'ads_frequency', 'ads_responsive', 'ads_mobile_enabled']);
+
+      if (data) {
+        const settingsMap = data.reduce((acc, setting) => {
+          let value = setting.value;
+          if (setting.key === 'ads_enabled' || setting.key === 'ads_responsive' || setting.key === 'ads_mobile_enabled') {
+            value = value === 'true';
+          } else if (setting.key === 'ads_frequency') {
+            value = parseInt(value) || 3;
+          }
+          acc[setting.key] = value;
+          return acc;
+        }, {} as any);
+
+        setAdSettings(prev => ({ ...prev, ...settingsMap }));
+      }
+    } catch (error) {
+      console.error('Erro ao buscar configurações de anúncios:', error);
+    }
+  };
+
+  const updateAdSetting = async (key: string, value: any) => {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({
+          key,
+          value: typeof value === 'boolean' ? value.toString() : value.toString()
+        });
+
+      if (error) throw error;
+
+      setAdSettings(prev => ({ ...prev, [key]: value }));
+      toast({
+        title: "Configuração atualizada",
+        description: "As configurações de anúncios foram salvas com sucesso."
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar configuração:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar a configuração.",
+        variant: "destructive"
+      });
+    }
   };
 
   const fetchPendingQuotes = async () => {
@@ -111,9 +175,6 @@ const AdminPanel = () => {
           authors (
             name,
             user_id
-          ),
-          quotes (
-            content
           )
         `)
         .eq('is_approved', false)
@@ -324,7 +385,7 @@ const AdminPanel = () => {
         </div>
 
         <Tabs defaultValue="quotes" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 text-xs sm:text-sm">
+          <TabsList className="grid w-full grid-cols-5 text-xs sm:text-sm">
             <TabsTrigger value="quotes" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Frases Pendentes ({stats.pendingQuotes})</span>
               <span className="sm:hidden">Frases ({stats.pendingQuotes})</span>
@@ -336,6 +397,10 @@ const AdminPanel = () => {
             <TabsTrigger value="authors" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Autores ({stats.totalAuthors})</span>
               <span className="sm:hidden">Autores ({stats.totalAuthors})</span>
+            </TabsTrigger>
+            <TabsTrigger value="ads" className="text-xs sm:text-sm">
+              <span className="hidden sm:inline">Anúncios</span>
+              <span className="sm:hidden">Ads</span>
             </TabsTrigger>
             <TabsTrigger value="admin" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Admins</span>
@@ -432,6 +497,120 @@ const AdminPanel = () => {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          <TabsContent value="ads" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Megaphone className="w-5 h-5" />
+                  Configurações de Anúncios
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="ads-enabled" className="text-base font-medium">
+                      Habilitar Anúncios
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Ativar ou desativar a exibição de anúncios na plataforma
+                    </p>
+                  </div>
+                  <Switch
+                    id="ads-enabled"
+                    checked={adSettings.ads_enabled}
+                    onCheckedChange={(checked) => updateAdSetting('ads_enabled', checked)}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="adsense-client">Google AdSense Client ID</Label>
+                    <Input
+                      id="adsense-client"
+                      placeholder="ca-pub-xxxxxxxxxxxxxxxxx"
+                      value={adSettings.google_adsense_client}
+                      onChange={(e) => setAdSettings(prev => ({ ...prev, google_adsense_client: e.target.value }))}
+                      onBlur={(e) => updateAdSetting('google_adsense_client', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Seu ID de cliente do Google AdSense
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="adsense-slot">Google AdSense Slot ID</Label>
+                    <Input
+                      id="adsense-slot"
+                      placeholder="1234567890"
+                      value={adSettings.google_adsense_slot}
+                      onChange={(e) => setAdSettings(prev => ({ ...prev, google_adsense_slot: e.target.value }))}
+                      onBlur={(e) => updateAdSetting('google_adsense_slot', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ID do slot de anúncio padrão
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="ads-frequency">Frequência de Anúncios</Label>
+                    <Input
+                      id="ads-frequency"
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={adSettings.ads_frequency}
+                      onChange={(e) => setAdSettings(prev => ({ ...prev, ads_frequency: parseInt(e.target.value) || 3 }))}
+                      onBlur={(e) => updateAdSetting('ads_frequency', parseInt(e.target.value) || 3)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Exibir um anúncio a cada X frases (padrão: 3)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="ads-responsive">Anúncios Responsivos</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Adaptar anúncios automaticamente ao tamanho da tela
+                      </p>
+                    </div>
+                    <Switch
+                      id="ads-responsive"
+                      checked={adSettings.ads_responsive}
+                      onCheckedChange={(checked) => updateAdSetting('ads_responsive', checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="ads-mobile">Anúncios em Dispositivos Móveis</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Exibir anúncios em smartphones e tablets
+                      </p>
+                    </div>
+                    <Switch
+                      id="ads-mobile"
+                      checked={adSettings.ads_mobile_enabled}
+                      onCheckedChange={(checked) => updateAdSetting('ads_mobile_enabled', checked)}
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">💡 Dicas para Anúncios</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Configure sua conta no Google AdSense antes de ativar</li>
+                    <li>• Teste diferentes frequências para otimizar receita</li>
+                    <li>• Anúncios responsivos se adaptam melhor a diferentes telas</li>
+                    <li>• Monitore o desempenho regularmente no painel do AdSense</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="admin" className="space-y-4">
