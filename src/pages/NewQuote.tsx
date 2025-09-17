@@ -4,6 +4,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
@@ -13,6 +14,7 @@ const NewQuote = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [content, setContent] = useState('');
+  const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [author, setAuthor] = useState<any>(null);
 
@@ -84,6 +86,7 @@ const NewQuote = () => {
       .from('quotes')
       .insert({
         content: content.trim(),
+        notes: notes.trim() || null,
         author_id: author.id,
         is_approved: false // Pendente de moderação
       });
@@ -156,6 +159,23 @@ const NewQuote = () => {
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Mínimo: 10 caracteres</span>
                   <span>{content.length}/2000</span>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <label htmlFor="notes" className="text-sm font-medium">
+                  Nota adicional (opcional)
+                </label>
+                <Input
+                  id="notes"
+                  placeholder="Contexto, origem da frase, informação adicional..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  maxLength={500}
+                />
+                <div className="text-right text-sm text-muted-foreground">
+                  {notes.length}/500
                 </div>
               </div>
 

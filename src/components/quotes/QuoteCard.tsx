@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { QuoteImageGenerator } from './QuoteImageGenerator';
 
 interface Quote {
   id: string;
@@ -296,7 +297,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
 
         {/* Quote content */}
         <div className="mb-6">
-          <blockquote className="text-lg sm:text-xl leading-relaxed text-foreground font-medium">
+          <blockquote className="text-lg sm:text-xl leading-relaxed text-foreground font-medium text-justify">
             "{displayContent}".
           </blockquote>
           {shouldTruncate && (
@@ -308,9 +309,9 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             </Link>
           )}
           {quote.notes && (
-            <div className="mt-4 p-2 bg-muted/20 rounded border-l-2 border-muted-foreground/20">
-              <p className="text-xs text-muted-foreground/80 italic">
-                Nota: {quote.notes}
+            <div className="mt-2">
+              <p className="text-[8px] text-muted-foreground/50 italic leading-tight">
+                {quote.notes}
               </p>
             </div>
           )}
@@ -354,6 +355,11 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <div className="w-full">
+                  <QuoteImageGenerator quote={quote} />
+                </div>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleShare('copy')}>
                 <Copy className="mr-2 h-4 w-4" />
                 Copiar link

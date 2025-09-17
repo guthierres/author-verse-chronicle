@@ -31,7 +31,7 @@ const Header = () => {
           <div className="w-8 h-8 sm:w-10 sm:h-10 earth-gradient rounded-xl flex items-center justify-center shadow-lg">
             <Quote className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
-          <span className="font-bold text-xl sm:text-2xl text-white">
+          <span className="font-bold text-xl sm:text-2xl text-foreground">
             ParaFrase
           </span>
         </Link>
