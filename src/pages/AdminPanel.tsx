@@ -99,7 +99,7 @@ const AdminPanel = () => {
           if (setting.key === 'ads_enabled' || setting.key === 'ads_responsive' || setting.key === 'ads_mobile_enabled') {
             value = value === 'true';
           } else if (setting.key === 'ads_frequency') {
-            value = parseInt(value) || 3;
+            value = parseInt(String(value)) || 3;
           }
           acc[setting.key] = value;
           return acc;

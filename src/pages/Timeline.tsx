@@ -47,7 +47,7 @@ const Timeline = () => {
         .single();
       
       if (data) {
-        setAdsFrequency(parseInt(data.value) || 3);
+        setAdsFrequency(parseInt(String(data.value)) || 3);
       }
     } catch (error) {
       console.error('Erro ao buscar configurações de anúncios:', error);
@@ -66,7 +66,6 @@ const Timeline = () => {
         created_at,
         views_count,
         shares_count,
-        notes,
         authors (
           id,
           name,
@@ -118,42 +117,43 @@ const Timeline = () => {
       <div className="flex max-w-7xl mx-auto">
         {/* Main Content */}
         <div className="flex-1 px-4 py-8 max-w-2xl">
-          {/* Header with background */}
+          {/* Header Section - Unified */}
           <div className="relative mb-8 p-8 rounded-2xl earth-gradient text-white overflow-hidden">
             <div className="absolute inset-0 bg-black/20"></div>
-            <div className="relative z-10 text-center">
-              <h1 className="text-4xl font-bold mb-2">
-                Timeline de Frases
-              </h1>
-              <p className="text-white/90 text-lg">
-                Descubra frases inspiradoras de autores incríveis
-              </p>
-              <div className="mt-4 h-px bg-white/30 max-w-md mx-auto"></div>
+            <div className="relative z-10">
+              <div className="text-center mb-6">
+                <h1 className="text-4xl font-bold mb-2">
+                  Timeline de Frases
+                </h1>
+                <p className="text-white/90 text-lg mb-4">
+                  Descubra frases inspiradoras de autores incríveis
+                </p>
+              </div>
+              
+              {/* Search integrated */}
+              <div className="mb-6 relative max-w-2xl mx-auto">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Pesquisar frases ou autores..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-12 text-base bg-white/90 border-0 focus:bg-white rounded-xl shadow-sm placeholder:text-gray-500"
+                />
+              </div>
+
+              {/* Add Quote Button integrated */}
+              {user && (
+                <div className="text-center">
+                  <Button asChild className="w-full sm:w-auto h-12 px-8 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-white">
+                    <Link to="/new-quote">
+                      <PlusCircle className="w-4 h-4 mr-2" />
+                      Compartilhar nova frase
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Search */}
-          <div className="mb-8 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Pesquisar frases ou autores..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-12 text-base border-2 focus:border-primary/50 rounded-xl shadow-sm"
-            />
-          </div>
-
-          {/* Add Quote Button */}
-          {user && (
-            <div className="mb-8 text-center">
-              <Button asChild className="w-full sm:w-auto h-12 px-8 earth-gradient hover:opacity-90 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                <Link to="/new-quote">
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  Compartilhar nova frase
-                </Link>
-              </Button>
-            </div>
-          )}
 
           {/* Quotes Feed */}
           <div className="space-y-6">

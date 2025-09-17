@@ -297,7 +297,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
         {/* Quote content */}
         <div className="mb-6">
           <blockquote className="text-lg sm:text-xl leading-relaxed text-foreground font-medium">
-            "{displayContent}"{shouldTruncate ? '' : '.'}
+            "{displayContent}".
           </blockquote>
           {shouldTruncate && (
             <Link 
@@ -308,9 +308,9 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             </Link>
           )}
           {quote.notes && (
-            <div className="mt-3 p-3 bg-accent/10 rounded-lg border-l-4 border-primary">
-              <p className="text-sm text-muted-foreground">
-                <strong>Nota:</strong> {quote.notes}
+            <div className="mt-4 p-2 bg-muted/20 rounded border-l-2 border-muted-foreground/20">
+              <p className="text-xs text-muted-foreground/80 italic">
+                Nota: {quote.notes}
               </p>
             </div>
           )}

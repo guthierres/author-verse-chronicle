@@ -72,7 +72,6 @@ const QuoteDetail = () => {
         created_at,
         views_count,
         shares_count,
-        notes,
         authors (
           id,
           name,
