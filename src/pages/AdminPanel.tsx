@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Check, X, Users, Quote, MessageCircle, BarChart3, Shield, UserPlus, Settings, Megaphone } from 'lucide-react';
+import { Loader2, Check, X, Users, Quote, MessageCircle, BarChart3, Shield, UserPlus, Settings, Megaphone, Plus, StickyNote } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 
@@ -19,6 +19,11 @@ const AdminPanel = () => {
   const [pendingComments, setPendingComments] = useState([]);
   const [authors, setAuthors] = useState([]);
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newQuote, setNewQuote] = useState({
+    content: '',
+    author_name: '',
+    notes: ''
+  });
   const [adSettings, setAdSettings] = useState({
     ads_enabled: false,
     google_adsense_client: '',
@@ -35,6 +40,7 @@ const AdminPanel = () => {
     pendingComments: 0
   });
   const [loading, setLoading] = useState(true);
+  const [isCreatingQuote, setIsCreatingQuote] = useState(false);
 
   // Redirect non-admin users
   if (authLoading) {
@@ -140,6 +146,7 @@ const AdminPanel = () => {
           id,
           content,
           created_at,
+          notes,
           authors (
             name,
             user_id
@@ -326,6 +333,81 @@ const AdminPanel = () => {
     }
   };
 
+  const createQuoteWithAuthor = async () => {
+    if (!newQuote.content.trim() || !newQuote.author_name.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o conteúdo da frase e o nome do autor",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsCreatingQuote(true);
+
+    try {
+      // Check if author exists
+      let { data: existingAuthor } = await supabase
+        .from('authors')
+        .select('id')
+        .eq('name', newQuote.author_name.trim())
+        .single();
+
+      let authorId = existingAuthor?.id;
+
+      // If author doesn't exist, create it
+      if (!existingAuthor) {
+        const { data: newAuthorData, error: authorError } = await supabase
+          .from('authors')
+          .insert({
+            name: newQuote.author_name.trim(),
+            is_verified: true,
+            is_active: true
+          })
+          .select('id')
+          .single();
+
+        if (authorError) {
+          throw authorError;
+        }
+
+        authorId = newAuthorData.id;
+      }
+
+      // Create the quote
+      const { error: quoteError } = await supabase
+        .from('quotes')
+        .insert({
+          content: newQuote.content.trim(),
+          author_id: authorId,
+          notes: newQuote.notes.trim() || null,
+          is_approved: true, // Admin quotes are auto-approved
+          is_active: true
+        });
+
+      if (quoteError) {
+        throw quoteError;
+      }
+
+      toast({
+        title: "Frase criada com sucesso!",
+        description: "A frase foi adicionada e está disponível na timeline."
+      });
+
+      setNewQuote({ content: '', author_name: '', notes: '' });
+      fetchAllData();
+    } catch (error) {
+      console.error('Erro ao criar frase:', error);
+      toast({
+        title: "Erro ao criar frase",
+        description: "Tente novamente em instantes",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingQuote(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -343,28 +425,28 @@ const AdminPanel = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Card>
+          <Card className="earth-shadow">
             <CardContent className="pt-4 sm:pt-6 text-center">
               <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-primary" />
               <p className="text-xl sm:text-2xl font-bold">{stats.totalAuthors}</p>
               <p className="text-xs sm:text-sm text-muted-foreground">Autores</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="earth-shadow">
             <CardContent className="pt-6 text-center">
               <Quote className="w-8 h-8 mx-auto mb-2 text-primary" />
               <p className="text-2xl font-bold">{stats.totalQuotes}</p>
               <p className="text-sm text-muted-foreground">Frases</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="earth-shadow">
             <CardContent className="pt-6 text-center">
               <MessageCircle className="w-8 h-8 mx-auto mb-2 text-primary" />
               <p className="text-2xl font-bold">{stats.totalComments}</p>
               <p className="text-sm text-muted-foreground">Comentários</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="earth-shadow">
             <CardContent className="pt-6 text-center">
               <div className="w-8 h-8 mx-auto mb-2 bg-amber-100 rounded-full flex items-center justify-center">
                 <Quote className="w-4 h-4 text-amber-600" />
@@ -373,7 +455,7 @@ const AdminPanel = () => {
               <p className="text-sm text-muted-foreground">Frases Pendentes</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="earth-shadow">
             <CardContent className="pt-6 text-center">
               <div className="w-8 h-8 mx-auto mb-2 bg-amber-100 rounded-full flex items-center justify-center">
                 <MessageCircle className="w-4 h-4 text-amber-600" />
@@ -385,18 +467,22 @@ const AdminPanel = () => {
         </div>
 
         <Tabs defaultValue="quotes" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 text-xs sm:text-sm">
+          <TabsList className="grid w-full grid-cols-6 text-xs sm:text-sm">
             <TabsTrigger value="quotes" className="text-xs sm:text-sm">
-              <span className="hidden sm:inline">Frases Pendentes ({stats.pendingQuotes})</span>
-              <span className="sm:hidden">Frases ({stats.pendingQuotes})</span>
+              <span className="hidden sm:inline">Frases ({stats.pendingQuotes})</span>
+              <span className="sm:hidden">Frases</span>
             </TabsTrigger>
             <TabsTrigger value="comments" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Comentários ({stats.pendingComments})</span>
-              <span className="sm:hidden">Coment. ({stats.pendingComments})</span>
+              <span className="sm:hidden">Coment.</span>
             </TabsTrigger>
             <TabsTrigger value="authors" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Autores ({stats.totalAuthors})</span>
-              <span className="sm:hidden">Autores ({stats.totalAuthors})</span>
+              <span className="sm:hidden">Autores</span>
+            </TabsTrigger>
+            <TabsTrigger value="create" className="text-xs sm:text-sm">
+              <span className="hidden sm:inline">Criar Frase</span>
+              <span className="sm:hidden">Criar</span>
             </TabsTrigger>
             <TabsTrigger value="ads" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Anúncios</span>
@@ -410,24 +496,32 @@ const AdminPanel = () => {
 
           <TabsContent value="quotes" className="space-y-4">
             {pendingQuotes.length === 0 ? (
-              <Card>
+              <Card className="earth-shadow">
                 <CardContent className="pt-6 text-center">
                   <p className="text-muted-foreground">Nenhuma frase pendente de aprovação</p>
                 </CardContent>
               </Card>
             ) : (
               pendingQuotes.map((quote: any) => (
-                <Card key={quote.id}>
+                <Card key={quote.id} className="earth-shadow">
                   <CardContent className="pt-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <blockquote className="text-lg mb-2">"{quote.content}"</blockquote>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mb-2">
                           Por {quote.authors.name} • {new Date(quote.created_at).toLocaleDateString('pt-BR')}
                         </p>
+                        {quote.notes && (
+                          <div className="mt-2 p-2 bg-accent/10 rounded border-l-4 border-primary">
+                            <p className="text-sm flex items-center">
+                              <StickyNote className="w-4 h-4 mr-1" />
+                              <strong>Nota:</strong> {quote.notes}
+                            </p>
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2 ml-4">
-                        <Button size="sm" onClick={() => approveQuote(quote.id)}>
+                        <Button size="sm" onClick={() => approveQuote(quote.id)} className="earth-gradient">
                           <Check className="w-4 h-4" />
                         </Button>
                         <Button variant="destructive" size="sm" onClick={() => rejectQuote(quote.id)}>
@@ -443,20 +537,20 @@ const AdminPanel = () => {
 
           <TabsContent value="comments" className="space-y-4">
             {pendingComments.length === 0 ? (
-              <Card>
+              <Card className="earth-shadow">
                 <CardContent className="pt-6 text-center">
                   <p className="text-muted-foreground">Nenhum comentário pendente</p>
                 </CardContent>
               </Card>
             ) : (
               pendingComments.map((comment: any) => (
-                <Card key={comment.id}>
+                <Card key={comment.id} className="earth-shadow">
                   <CardContent className="pt-4">
                     <p className="mb-2">{comment.content}</p>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Por {comment.authors.name} em "{comment.quotes.content.substring(0, 50)}..."
+                      Por {comment.authors.name}
                     </p>
-                    <Button size="sm" onClick={() => approveComment(comment.id)}>
+                    <Button size="sm" onClick={() => approveComment(comment.id)} className="earth-gradient">
                       <Check className="w-4 h-4 mr-2" />
                       Aprovar
                     </Button>
@@ -469,13 +563,13 @@ const AdminPanel = () => {
           <TabsContent value="authors" className="space-y-4">
             <div className="grid gap-4">
               {authors.map((author: any) => (
-                <Card key={author.id}>
+                <Card key={author.id} className="earth-shadow">
                   <CardContent className="pt-4">
                     <div className="flex justify-between items-center">
                       <div>
                         <h3 className="font-semibold flex items-center gap-2">
                           {author.name}
-                          {author.is_verified && <Badge variant="default" className="text-xs">✓</Badge>}
+                          {author.is_verified && <Badge variant="default" className="text-xs earth-gradient text-white">✓</Badge>}
                           <Badge variant={author.is_active ? "default" : "secondary"}>
                             {author.is_active ? "Ativo" : "Inativo"}
                           </Badge>
@@ -499,8 +593,70 @@ const AdminPanel = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="create" className="space-y-6">
+            <Card className="earth-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="w-5 h-5" />
+                  Criar Nova Frase
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="author-name">Nome do Autor</Label>
+                  <Input
+                    id="author-name"
+                    placeholder="Nome do autor da frase"
+                    value={newQuote.author_name}
+                    onChange={(e) => setNewQuote(prev => ({ ...prev, author_name: e.target.value }))}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="quote-content">Conteúdo da Frase</Label>
+                  <Textarea
+                    id="quote-content"
+                    placeholder="Digite aqui o conteúdo da frase..."
+                    value={newQuote.content}
+                    onChange={(e) => setNewQuote(prev => ({ ...prev, content: e.target.value }))}
+                    rows={4}
+                    maxLength={2000}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {newQuote.content.length}/2000
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quote-notes">Notas (Opcional)</Label>
+                  <Textarea
+                    id="quote-notes"
+                    placeholder="Adicione notas ou observações sobre a frase..."
+                    value={newQuote.notes}
+                    onChange={(e) => setNewQuote(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={2}
+                    maxLength={500}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {newQuote.notes.length}/500
+                  </span>
+                </div>
+
+                <Button 
+                  onClick={createQuoteWithAuthor} 
+                  disabled={isCreatingQuote || !newQuote.content.trim() || !newQuote.author_name.trim()}
+                  className="w-full earth-gradient"
+                >
+                  {isCreatingQuote && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Plus className="mr-2 h-4 w-4" />
+                  Criar Frase
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="ads" className="space-y-6">
-            <Card>
+            <Card className="earth-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Megaphone className="w-5 h-5" />
@@ -614,7 +770,7 @@ const AdminPanel = () => {
           </TabsContent>
 
           <TabsContent value="admin" className="space-y-4">
-            <Card>
+            <Card className="earth-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserPlus className="w-5 h-5" />
@@ -632,7 +788,7 @@ const AdminPanel = () => {
                     onChange={(e) => setNewAdminEmail(e.target.value)}
                     className="flex-1"
                   />
-                  <Button onClick={promoteToAdmin}>
+                  <Button onClick={promoteToAdmin} className="earth-gradient">
                     <UserPlus className="w-4 h-4 mr-2" />
                     Promover
                   </Button>
@@ -640,7 +796,7 @@ const AdminPanel = () => {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="earth-shadow">
               <CardHeader>
                 <CardTitle>Configurações de Segurança</CardTitle>
               </CardHeader>

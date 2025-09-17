@@ -18,7 +18,7 @@ import {
   Twitter,
   Facebook,
   MessageSquare,
-  MoreHorizontal
+  StickyNote
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -33,6 +33,7 @@ interface Quote {
   created_at: string;
   views_count: number;
   shares_count: number;
+  notes?: string;
   authors: {
     id: string;
     name: string;
@@ -52,6 +53,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   const [hasReacted, setHasReacted] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
   const [isReacting, setIsReacting] = useState(false);
+  const [quoteNumber, setQuoteNumber] = useState<string>('');
 
   const shouldTruncate = !showFullContent && quote.content.length > 300;
   const displayContent = shouldTruncate 
@@ -61,10 +63,21 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   useEffect(() => {
     fetchReactionData();
     fetchCommentCount();
+    generateQuoteNumber();
     if (user) {
       checkUserReaction();
     }
   }, [quote.id, user]);
+
+  const generateQuoteNumber = () => {
+    // Generate a 5-digit number based on quote ID
+    const hash = quote.id.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    const number = Math.abs(hash) % 100000;
+    setQuoteNumber(number.toString().padStart(5, '0'));
+  };
 
   const fetchReactionData = async () => {
     const { count } = await supabase
@@ -107,48 +120,58 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   };
 
   const handleReaction = async () => {
-    if (!user || isReacting) return;
-
     setIsReacting(true);
 
-    const { data: author } = await supabase
-      .from('authors')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
+    if (user) {
+      // Logged user reaction
+      const { data: author } = await supabase
+        .from('authors')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
 
-    if (!author) {
-      toast({
-        title: "Erro",
-        description: "Perfil de autor não encontrado",
-        variant: "destructive"
-      });
-      setIsReacting(false);
-      return;
-    }
+      if (!author) {
+        toast({
+          title: "Erro",
+          description: "Perfil de autor não encontrado",
+          variant: "destructive"
+        });
+        setIsReacting(false);
+        return;
+      }
 
-    if (hasReacted) {
-      // Remove reaction
-      const { error } = await supabase
-        .from('reactions')
-        .delete()
-        .eq('quote_id', quote.id)
-        .eq('author_id', author.id);
+      if (hasReacted) {
+        // Remove reaction
+        const { error } = await supabase
+          .from('reactions')
+          .delete()
+          .eq('quote_id', quote.id)
+          .eq('author_id', author.id);
 
-      if (!error) {
-        setHasReacted(false);
-        setReactionCount(prev => prev - 1);
+        if (!error) {
+          setHasReacted(false);
+          setReactionCount(prev => prev - 1);
+        }
+      } else {
+        // Add reaction
+        const { error } = await supabase
+          .from('reactions')
+          .insert({
+            quote_id: quote.id,
+            author_id: author.id
+          });
+
+        if (!error) {
+          setHasReacted(true);
+          setReactionCount(prev => prev + 1);
+        }
       }
     } else {
-      // Add reaction
-      const { error } = await supabase
-        .from('reactions')
-        .insert({
-          quote_id: quote.id,
-          author_id: author.id
-        });
-
-      if (!error) {
+      // Anonymous reaction - just update count locally
+      if (hasReacted) {
+        setHasReacted(false);
+        setReactionCount(prev => prev - 1);
+      } else {
         setHasReacted(true);
         setReactionCount(prev => prev + 1);
       }
@@ -158,7 +181,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   };
 
   const handleShare = async (platform: string) => {
-    const quoteUrl = `${window.location.origin}/quote/${quote.id}`;
+    const quoteUrl = `${window.location.origin}/quote/${quoteNumber}`;
     const text = `"${quote.content}" - ${quote.authors.name}`;
 
     // Register share
@@ -220,8 +243,29 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   });
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-0 shadow-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800">
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-0 shadow-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 earth-shadow">
       <CardContent className="p-4 sm:p-6">
+        {/* Quote Number and Notes */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
+              #{quoteNumber}
+            </span>
+            {quote.notes && (
+              <div className="flex items-center text-muted-foreground">
+                <StickyNote className="w-3 h-3 mr-1" />
+                <span className="quote-note">Nota disponível</span>
+              </div>
+            )}
+          </div>
+          <Link 
+            to={`/quote/${quoteNumber}`}
+            className="text-xs text-primary hover:underline"
+          >
+            Link direto
+          </Link>
+        </div>
+
         {/* Author info */}
         <div className="flex items-center space-x-3 mb-4">
           <Link to={`/author/${quote.authors.id}`}>
@@ -241,7 +285,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
                 {quote.authors.name}
               </Link>
               {quote.authors.is_verified && (
-                <Badge variant="default" className="text-xs flex-shrink-0 bg-gradient-to-r from-blue-500 to-purple-600">
+                <Badge variant="default" className="text-xs flex-shrink-0 earth-gradient text-white">
                   ✓
                 </Badge>
               )}
@@ -257,11 +301,18 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
           </blockquote>
           {shouldTruncate && (
             <Link 
-              to={`/quote/${quote.id}`}
+              to={`/quote/${quoteNumber}`}
               className="inline-block mt-3 text-primary hover:underline font-semibold text-sm"
             >
               Ler completo
             </Link>
+          )}
+          {quote.notes && (
+            <div className="mt-3 p-3 bg-accent/10 rounded-lg border-l-4 border-primary">
+              <p className="text-sm text-muted-foreground">
+                <strong>Nota:</strong> {quote.notes}
+              </p>
+            </div>
           )}
         </div>
 
@@ -272,7 +323,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
               variant="ghost"
               size="default"
               onClick={handleReaction}
-              disabled={!user || isReacting}
+              disabled={isReacting}
               className={`${hasReacted ? 'text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-950' : 'text-muted-foreground hover:text-red-500'} rounded-full px-4`}
             >
               <Heart className={`w-4 h-4 mr-1 ${hasReacted ? 'fill-current' : ''}`} />
@@ -281,7 +332,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             </Button>
 
             <Button variant="ghost" size="default" asChild className="rounded-full px-4">
-              <Link to={`/quote/${quote.id}#comments`}>
+              <Link to={`/quote/${quoteNumber}#comments`}>
                 <MessageCircle className="w-4 h-4 mr-1" />
                 <span className="hidden xs:inline">{commentCount}</span>
                 <span className="xs:hidden">{commentCount > 0 ? commentCount : ''}</span>
@@ -297,7 +348,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="default" className="rounded-full px-4 bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 hover:from-violet-600 hover:to-purple-700">
+              <Button variant="outline" size="default" className="rounded-full px-4 earth-gradient text-white border-0 hover:opacity-90">
                 <Share2 className="w-4 h-4 mr-1" />
                 <span className="hidden sm:inline">Compartilhar</span>
               </Button>

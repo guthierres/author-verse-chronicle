@@ -28,10 +28,10 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
       <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-violet-500 via-purple-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 earth-gradient rounded-xl flex items-center justify-center shadow-lg">
             <Quote className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
-          <span className="font-bold text-xl sm:text-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+          <span className="font-bold text-xl sm:text-2xl earth-gradient bg-clip-text text-transparent">
             ParaFrase
           </span>
         </Link>
@@ -54,7 +54,7 @@ const Header = () => {
         <div className="flex items-center space-x-2 sm:space-x-4">
           {user ? (
             <>
-              <Button asChild size="sm" className="hidden sm:flex bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700">
+              <Button asChild size="sm" className="hidden sm:flex earth-gradient hover:opacity-90">
                 <Link to="/new-quote">
                   <PlusCircle className="w-4 h-4 mr-2" />
                   Nova Frase
@@ -169,7 +169,7 @@ const Header = () => {
               </DropdownMenu>
             </>
           ) : (
-            <Button asChild size="sm" className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700">
+            <Button asChild size="sm" className="earth-gradient hover:opacity-90">
               <Link to="/auth">Entrar</Link>
             </Button>
           )}

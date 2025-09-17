@@ -38,7 +38,7 @@ const QuoteDetail = () => {
 
   useEffect(() => {
     if (id) {
-      fetchQuote();
+      fetchQuoteByNumber();
       fetchComments();
       registerView();
     }
@@ -62,8 +62,9 @@ const QuoteDetail = () => {
     setAuthor(data);
   };
 
-  const fetchQuote = async () => {
-    const { data, error } = await supabase
+  const fetchQuoteByNumber = async () => {
+    // First, get all quotes and find the one with matching number
+    const { data: allQuotes } = await supabase
       .from('quotes')
       .select(`
         id,
@@ -71,6 +72,7 @@ const QuoteDetail = () => {
         created_at,
         views_count,
         shares_count,
+        notes,
         authors (
           id,
           name,
@@ -78,20 +80,31 @@ const QuoteDetail = () => {
           is_verified
         )
       `)
-      .eq('id', id)
       .eq('is_approved', true)
-      .eq('is_active', true)
-      .single();
+      .eq('is_active', true);
 
-    if (data) {
-      setQuote(data);
-    } else if (error) {
-      console.error('Error fetching quote:', error);
+    if (allQuotes) {
+      // Find quote by generated number
+      const targetQuote = allQuotes.find(q => {
+        const hash = q.id.split('').reduce((a, b) => {
+          a = ((a << 5) - a) + b.charCodeAt(0);
+          return a & a;
+        }, 0);
+        const number = Math.abs(hash) % 100000;
+        const quoteNumber = number.toString().padStart(5, '0');
+        return quoteNumber === id;
+      });
+
+      if (targetQuote) {
+        setQuote(targetQuote);
+      }
     }
     setLoading(false);
   };
 
   const fetchComments = async () => {
+    if (!quote) return;
+
     const { data, error } = await supabase
       .from('comments')
       .select(`
@@ -105,7 +118,7 @@ const QuoteDetail = () => {
           is_verified
         )
       `)
-      .eq('quote_id', id)
+      .eq('quote_id', quote.id)
       .eq('is_approved', true)
       .order('created_at', { ascending: true });
 
@@ -115,11 +128,11 @@ const QuoteDetail = () => {
   };
 
   const registerView = async () => {
-    if (!id) return;
+    if (!quote) return;
 
     // Register view
     const viewData: any = {
-      quote_id: id,
+      quote_id: quote.id,
       viewer_ip: 'anonymous'
     };
 
@@ -133,14 +146,14 @@ const QuoteDetail = () => {
     const { data: currentQuote } = await supabase
       .from('quotes')
       .select('views_count')
-      .eq('id', id)
+      .eq('id', quote.id)
       .single();
 
     if (currentQuote) {
       await supabase
         .from('quotes')
         .update({ views_count: (currentQuote.views_count || 0) + 1 })
-        .eq('id', id);
+        .eq('id', quote.id);
     }
   };
 
@@ -174,7 +187,7 @@ const QuoteDetail = () => {
     const { error } = await supabase
       .from('comments')
       .insert({
-        quote_id: id,
+        quote_id: quote.id,
         author_id: author.id,
         content: newComment.trim(),
         is_approved: false // Precisa de moderação
@@ -253,7 +266,7 @@ const QuoteDetail = () => {
                     <span className="text-sm text-muted-foreground">
                       {newComment.length}/500
                     </span>
-                    <Button type="submit" disabled={submittingComment || !newComment.trim()}>
+                    <Button type="submit" disabled={submittingComment || !newComment.trim()} className="earth-gradient">
                       {submittingComment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Send className="mr-2 h-4 w-4" />
                       Comentar
@@ -271,7 +284,7 @@ const QuoteDetail = () => {
                 <p className="text-muted-foreground mb-4">
                   Faça login para deixar um comentário
                 </p>
-                <Button asChild>
+                <Button asChild className="earth-gradient">
                   <Link to="/auth">Entrar</Link>
                 </Button>
               </CardContent>
