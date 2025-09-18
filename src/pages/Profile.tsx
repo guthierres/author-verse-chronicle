@@ -100,6 +100,7 @@ const Profile = () => {
         created_at,
         views_count,
         shares_count,
+        likes_count,
         is_approved,
         is_active,
         authors (

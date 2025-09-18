@@ -12,6 +12,7 @@ interface PopularQuote {
   id: string;
   content: string;
   views_count: number;
+  likes_count?: number;
   authors: {
     id: string;
     name: string;
@@ -46,6 +47,7 @@ const Sidebar = () => {
           id,
           content,
           views_count,
+          likes_count,
           authors (
             id,
             name,

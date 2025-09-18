@@ -35,6 +35,7 @@ interface Quote {
   created_at: string;
   views_count: number;
   shares_count: number;
+  likes_count?: number;
   notes?: string;
   authors: {
     id: string;
@@ -51,7 +52,7 @@ interface QuoteCardProps {
 
 const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   const { user } = useAuth();
-  const [reactionCount, setReactionCount] = useState(0);
+  const [likesCount, setLikesCount] = useState(quote.likes_count || 0);
   const [hasReacted, setHasReacted] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
   const [isReacting, setIsReacting] = useState(false);
@@ -66,12 +67,9 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
     : quote.content;
 
   useEffect(() => {
-    fetchReactionData();
+    checkUserReaction();
     fetchCommentCount();
     generateQuoteNumber();
-    if (user) {
-      checkUserReaction();
-    }
   }, [quote.id, user]);
 
   const generateQuoteNumber = () => {
@@ -82,15 +80,6 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
     }, 0);
     const number = Math.abs(hash) % 100000;
     setQuoteNumber(number.toString().padStart(5, '0'));
-  };
-
-  const fetchReactionData = async () => {
-    const { count } = await supabase
-      .from('reactions')
-      .select('*', { count: 'exact', head: true })
-      .eq('quote_id', quote.id);
-    
-    setReactionCount(count || 0);
   };
 
   const fetchCommentCount = async () => {
@@ -104,37 +93,29 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   };
 
   const checkUserReaction = async () => {
-    if (!user) return;
+    if (user) {
+      // Usuário autenticado - verificar na tabela reactions
+      const { data: author } = await supabase
+        .from('authors')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1);
 
-    // Check localStorage first for immediate feedback
-    const reactionKey = `reaction_${quote.id}_${user.id}`;
-    const localReaction = localStorage.getItem(reactionKey);
-    
-    const { data: author } = await supabase
-      .from('authors')
-      .select('id')
-      .eq('user_id', user.id)
-      .limit(1);
+      if (author && author.length > 0) {
+        const { data } = await supabase
+          .from('reactions')
+          .select('id')
+          .eq('quote_id', quote.id)
+          .eq('author_id', author[0].id)
+          .limit(1);
 
-    if (!author || author.length === 0) return;
-
-    const { data } = await supabase
-      .from('reactions')
-      .select('id')
-      .eq('quote_id', quote.id)
-      .eq('author_id', author[0].id)
-      .limit(1);
-
-    const dbHasReaction = data && data.length > 0;
-    
-    // Sync localStorage with database
-    if (dbHasReaction && !localReaction) {
-      localStorage.setItem(reactionKey, 'true');
-    } else if (!dbHasReaction && localReaction) {
-      localStorage.removeItem(reactionKey);
+        setHasReacted(data && data.length > 0);
+      }
+    } else {
+      // Usuário anônimo - verificar localStorage
+      const likedQuotes = JSON.parse(localStorage.getItem('liked_quotes_anon') || '[]');
+      setHasReacted(likedQuotes.includes(quote.id));
     }
-    
-    setHasReacted(dbHasReaction);
   };
 
   const handleReaction = async () => {
@@ -143,7 +124,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
     setIsReacting(true);
 
     if (user) {
-      // Logged user reaction
+      // Usuário autenticado
       const { data: author } = await supabase
         .from('authors')
         .select('id')
@@ -161,7 +142,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
       }
 
       if (hasReacted) {
-        // Remove reaction
+        // Remover curtida
         const { error } = await supabase
           .from('reactions')
           .delete()
@@ -169,15 +150,17 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
           .eq('author_id', author[0].id);
 
         if (!error) {
+          // Decrementar likes_count na tabela quotes
+          await supabase
+            .from('quotes')
+            .update({ likes_count: Math.max(0, likesCount - 1) })
+            .eq('id', quote.id);
+
           setHasReacted(false);
-          setReactionCount(prev => prev - 1);
-          
-          // Store in localStorage for persistence
-          const reactionKey = `reaction_${quote.id}_${user.id}`;
-          localStorage.removeItem(reactionKey);
+          setLikesCount(prev => Math.max(0, prev - 1));
         }
       } else {
-        // Add reaction
+        // Adicionar curtida
         const { error } = await supabase
           .from('reactions')
           .insert({
@@ -186,21 +169,51 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
           });
 
         if (!error) {
+          // Incrementar likes_count na tabela quotes
+          await supabase
+            .from('quotes')
+            .update({ likes_count: likesCount + 1 })
+            .eq('id', quote.id);
+
           setHasReacted(true);
-          setReactionCount(prev => prev + 1);
-          
-          // Store in localStorage for persistence
-          const reactionKey = `reaction_${quote.id}_${user.id}`;
-          localStorage.setItem(reactionKey, 'true');
+          setLikesCount(prev => prev + 1);
         }
       }
     } else {
-      // For anonymous users, redirect to login
-      toast({
-        title: "Login necessário",
-        description: "Você precisa estar logado para reagir às frases.",
-        variant: "destructive"
-      });
+      // Usuário anônimo
+      const likedQuotes = JSON.parse(localStorage.getItem('liked_quotes_anon') || '[]');
+      
+      if (hasReacted) {
+        // Remover curtida
+        const updatedLikes = likedQuotes.filter((id: string) => id !== quote.id);
+        localStorage.setItem('liked_quotes_anon', JSON.stringify(updatedLikes));
+        
+        // Decrementar likes_count na tabela quotes
+        const { error } = await supabase
+          .from('quotes')
+          .update({ likes_count: Math.max(0, likesCount - 1) })
+          .eq('id', quote.id);
+
+        if (!error) {
+          setHasReacted(false);
+          setLikesCount(prev => Math.max(0, prev - 1));
+        }
+      } else {
+        // Adicionar curtida
+        const updatedLikes = [...likedQuotes, quote.id];
+        localStorage.setItem('liked_quotes_anon', JSON.stringify(updatedLikes));
+        
+        // Incrementar likes_count na tabela quotes
+        const { error } = await supabase
+          .from('quotes')
+          .update({ likes_count: likesCount + 1 })
+          .eq('id', quote.id);
+
+        if (!error) {
+          setHasReacted(true);
+          setLikesCount(prev => prev + 1);
+        }
+      }
     }
 
     setIsReacting(false);
@@ -342,8 +355,8 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
               className={`${hasReacted ? 'text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-950' : 'text-muted-foreground hover:text-red-500'} rounded-full px-4`}
             >
               <Heart className={`w-4 h-4 mr-1 ${hasReacted ? 'fill-current' : ''}`} />
-              <span className="hidden xs:inline">{reactionCount}</span>
-              <span className="xs:hidden">{reactionCount > 0 ? reactionCount : ''}</span>
+              <span className="hidden xs:inline">{likesCount}</span>
+              <span className="xs:hidden">{likesCount > 0 ? likesCount : ''}</span>
             </Button>
 
             <Button variant="ghost" size="default" asChild className="rounded-full px-4">

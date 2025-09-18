@@ -213,6 +213,7 @@ const AdminPanel = () => {
           created_at,
           views_count,
           shares_count,
+          likes_count,
           notes,
           authors (
             name,
@@ -720,6 +721,7 @@ const AdminPanel = () => {
                         <div className="flex gap-4 text-xs text-muted-foreground">
                           <span>👁️ {quote.views_count || 0} visualizações</span>
                           <span>📤 {quote.shares_count || 0} compartilhamentos</span>
+                          <span>❤️ {quote.likes_count || 0} curtidas</span>
                         </div>
                         {quote.notes && (
                           <div className="mt-2 p-2 bg-accent/10 rounded border-l-4 border-primary">

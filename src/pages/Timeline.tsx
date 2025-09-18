@@ -17,6 +17,7 @@ interface Quote {
   created_at: string;
   views_count: number;
   shares_count: number;
+  likes_count?: number;
   notes?: string;
   authors: {
     id: string;
@@ -33,18 +34,28 @@ const Timeline = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   useEffect(() => {
     setQuotes([]);
     setPage(0);
     setHasMore(true);
     fetchQuotes(0);
-  }, [searchTerm]);
+  }, [debouncedSearchTerm]);
 
   const fetchQuotes = async (currentPage = 0) => {
     const from = currentPage * PAGE_SIZE;
@@ -65,6 +76,7 @@ const Timeline = () => {
         created_at,
         views_count,
         shares_count,
+        likes_count,
         authors (
           id,
           name,
@@ -76,8 +88,8 @@ const Timeline = () => {
       .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (searchTerm.trim()) {
-        const searchTerms = searchTerm.toLowerCase().trim().split(' ').filter(word => word.length > 0);
+      if (debouncedSearchTerm.trim()) {
+        const searchTerms = debouncedSearchTerm.toLowerCase().trim().split(' ').filter(word => word.length > 0);
         
         // Build OR conditions for content and author name
         const contentConditions = searchTerms.map(term => `content.ilike.%${term}%`).join(',');
