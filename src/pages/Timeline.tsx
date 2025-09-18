@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Search, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MobileSidebar } from '@/components/sidebar/MobileSidebar';
+import Sidebar from '@/components/layout/Sidebar';
 
 interface Quote {
   id: string;
@@ -84,8 +85,8 @@ const Timeline = () => {
             Descubra frases inspiradoras de autores incríveis
           </p>
           
-          {/* Search and Action Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-2xl mx-auto">
+          {/* Search and Action Bar - Responsive Layout */}
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-4 max-w-4xl mx-auto">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -96,14 +97,16 @@ const Timeline = () => {
               />
             </div>
 
-            {/* New Quote Button */}
+            {/* New Quote Button - Mobile: below search, Desktop: aligned with sidebar */}
             {user && (
-              <Button asChild className="earth-gradient hover:opacity-90 text-white shadow-lg flex-shrink-0">
-                <Link to="/new-quote">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Compartilhar Nova Frase
-                </Link>
-              </Button>
+              <div className="w-full lg:w-auto flex justify-center lg:justify-end lg:min-w-[280px]">
+                <Button asChild className="earth-gradient hover:opacity-90 text-white shadow-lg flex-shrink-0">
+                  <Link to="/new-quote">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Compartilhar Nova Frase
+                  </Link>
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -127,6 +130,11 @@ const Timeline = () => {
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Desktop Sidebar */}
+          <div className="hidden lg:block">
+            <Sidebar />
           </div>
         </div>
       </div>

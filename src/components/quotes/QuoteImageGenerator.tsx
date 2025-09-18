@@ -63,7 +63,13 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
     // Draw quote text
     const startY = canvas.height / 2 - (lines.length * lineHeight) / 2;
     lines.forEach((line, i) => {
-      ctx.fillText(`"${i === 0 ? '' : ''}${line}${i === lines.length - 1 ? '"' : ''}"`, canvas.width / 2, startY + i * lineHeight);
+      if (i === 0) {
+        ctx.fillText(`"${line}`, canvas.width / 2, startY + i * lineHeight);
+      } else if (i === lines.length - 1) {
+        ctx.fillText(`${line}"`, canvas.width / 2, startY + i * lineHeight);
+      } else {
+        ctx.fillText(line, canvas.width / 2, startY + i * lineHeight);
+      }
     });
 
     // Author name

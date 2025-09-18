@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Check, X, Users, Quote, MessageCircle, BarChart3, Shield, UserPlus, Settings, Megaphone, Plus, StickyNote } from 'lucide-react';
+import { Loader2, Check, X, Users, Quote, MessageCircle, BarChart3, Shield, UserPlus, Settings, Megaphone, Plus, StickyNote, Trash } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 
@@ -17,6 +17,8 @@ const AdminPanel = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [pendingQuotes, setPendingQuotes] = useState([]);
   const [pendingComments, setPendingComments] = useState([]);
+  const [approvedQuotes, setApprovedQuotes] = useState([]);
+  const [approvedComments, setApprovedComments] = useState([]);
   const [authors, setAuthors] = useState([]);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newQuote, setNewQuote] = useState({
@@ -79,6 +81,8 @@ const AdminPanel = () => {
     await Promise.all([
       fetchPendingQuotes(),
       fetchPendingComments(),
+      fetchApprovedQuotes(),
+      fetchApprovedComments(),
       fetchAuthors(),
       fetchStats(),
       fetchAdSettings()
@@ -158,11 +162,6 @@ const AdminPanel = () => {
 
       if (error) {
         console.error('Erro ao buscar frases pendentes:', error);
-        toast({
-          title: "Erro ao carregar frases pendentes",
-          description: error.message,
-          variant: "destructive"
-        });
       } else {
         setPendingQuotes(data || []);
       }
@@ -189,16 +188,73 @@ const AdminPanel = () => {
 
       if (error) {
         console.error('Erro ao buscar comentários pendentes:', error);
-        toast({
-          title: "Erro ao carregar comentários pendentes",
-          description: error.message,
-          variant: "destructive"
-        });
       } else {
         setPendingComments(data || []);
       }
     } catch (error) {
       console.error('Erro ao buscar comentários pendentes:', error);
+    }
+  };
+
+  const fetchApprovedQuotes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('quotes')
+        .select(`
+          id,
+          content,
+          created_at,
+          views_count,
+          shares_count,
+          notes,
+          authors (
+            name,
+            user_id
+          )
+        `)
+        .eq('is_approved', true)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Erro ao buscar frases aprovadas:', error);
+      } else {
+        setApprovedQuotes(data || []);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar frases aprovadas:', error);
+    }
+  };
+
+  const fetchApprovedComments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          content,
+          created_at,
+          authors (
+            name,
+            user_id
+          ),
+          quotes (
+            id,
+            content
+          )
+        `)
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Erro ao buscar comentários aprovados:', error);
+      } else {
+        setApprovedComments(data || []);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar comentários aprovados:', error);
     }
   };
 
@@ -261,6 +317,30 @@ const AdminPanel = () => {
 
     if (!error) {
       toast({ title: "Comentário aprovado!" });
+      fetchAllData();
+    }
+  };
+
+  const deleteQuote = async (id: string) => {
+    const { error } = await supabase
+      .from('quotes')
+      .update({ is_active: false })
+      .eq('id', id);
+
+    if (!error) {
+      toast({ title: "Frase removida!" });
+      fetchAllData();
+    }
+  };
+
+  const deleteComment = async (id: string) => {
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', id);
+
+    if (!error) {
+      toast({ title: "Comentário removido!" });
       fetchAllData();
     }
   };
@@ -466,35 +546,37 @@ const AdminPanel = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="quotes" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 text-xs sm:text-sm">
-            <TabsTrigger value="quotes" className="text-xs sm:text-sm">
-              <span className="hidden sm:inline">Frases ({stats.pendingQuotes})</span>
-              <span className="sm:hidden">Frases</span>
-            </TabsTrigger>
-            <TabsTrigger value="comments" className="text-xs sm:text-sm">
-              <span className="hidden sm:inline">Comentários ({stats.pendingComments})</span>
-              <span className="sm:hidden">Coment.</span>
-            </TabsTrigger>
-            <TabsTrigger value="authors" className="text-xs sm:text-sm">
-              <span className="hidden sm:inline">Autores ({stats.totalAuthors})</span>
-              <span className="sm:hidden">Autores</span>
-            </TabsTrigger>
-            <TabsTrigger value="create" className="text-xs sm:text-sm">
-              <span className="hidden sm:inline">Criar Frase</span>
-              <span className="sm:hidden">Criar</span>
-            </TabsTrigger>
-            <TabsTrigger value="ads" className="text-xs sm:text-sm">
-              <span className="hidden sm:inline">Anúncios</span>
-              <span className="sm:hidden">Ads</span>
-            </TabsTrigger>
-            <TabsTrigger value="admin" className="text-xs sm:text-sm">
-              <span className="hidden sm:inline">Admins</span>
-              <span className="sm:hidden">Admin</span>
-            </TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="pending-quotes" className="w-full">
+          <div className="overflow-x-auto">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground min-w-full lg:min-w-0">
+              <TabsTrigger value="pending-quotes" className="text-xs sm:text-sm">
+                Pendentes ({stats.pendingQuotes})
+              </TabsTrigger>
+              <TabsTrigger value="pending-comments" className="text-xs sm:text-sm">
+                Coment. Pend. ({stats.pendingComments})
+              </TabsTrigger>
+              <TabsTrigger value="quotes" className="text-xs sm:text-sm">
+                Frases Ativas
+              </TabsTrigger>
+              <TabsTrigger value="comments" className="text-xs sm:text-sm">
+                Comentários
+              </TabsTrigger>
+              <TabsTrigger value="authors" className="text-xs sm:text-sm">
+                Autores
+              </TabsTrigger>
+              <TabsTrigger value="create" className="text-xs sm:text-sm">
+                Criar
+              </TabsTrigger>
+              <TabsTrigger value="ads" className="text-xs sm:text-sm">
+                Ads
+              </TabsTrigger>
+              <TabsTrigger value="admin" className="text-xs sm:text-sm">
+                Admin
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="quotes" className="space-y-4">
+          <TabsContent value="pending-quotes" className="space-y-4 mt-6">
             {pendingQuotes.length === 0 ? (
               <Card className="earth-shadow">
                 <CardContent className="pt-6 text-center">
@@ -535,7 +617,7 @@ const AdminPanel = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="comments" className="space-y-4">
+          <TabsContent value="pending-comments" className="space-y-4 mt-6">
             {pendingComments.length === 0 ? (
               <Card className="earth-shadow">
                 <CardContent className="pt-6 text-center">
@@ -548,19 +630,110 @@ const AdminPanel = () => {
                   <CardContent className="pt-4">
                     <p className="mb-2">{comment.content}</p>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Por {comment.authors.name}
+                      Por {comment.authors.name} • {new Date(comment.created_at).toLocaleDateString('pt-BR')}
                     </p>
-                    <Button size="sm" onClick={() => approveComment(comment.id)} className="earth-gradient">
-                      <Check className="w-4 h-4 mr-2" />
-                      Aprovar
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => approveComment(comment.id)} className="earth-gradient">
+                        <Check className="w-4 h-4 mr-2" />
+                        Aprovar
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => deleteComment(comment.id)}>
+                        <X className="w-4 h-4 mr-2" />
+                        Rejeitar
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))
             )}
           </TabsContent>
 
-          <TabsContent value="authors" className="space-y-4">
+          <TabsContent value="quotes" className="space-y-4 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Frases Ativas ({approvedQuotes.length})</h3>
+            </div>
+            {approvedQuotes.length === 0 ? (
+              <Card className="earth-shadow">
+                <CardContent className="pt-6 text-center">
+                  <p className="text-muted-foreground">Nenhuma frase ativa encontrada</p>
+                </CardContent>
+              </Card>
+            ) : (
+              approvedQuotes.map((quote: any) => (
+                <Card key={quote.id} className="earth-shadow">
+                  <CardContent className="pt-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <blockquote className="text-lg mb-2">"{quote.content}"</blockquote>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Por {quote.authors.name} • {new Date(quote.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                        <div className="flex gap-4 text-xs text-muted-foreground">
+                          <span>👁️ {quote.views_count || 0} visualizações</span>
+                          <span>📤 {quote.shares_count || 0} compartilhamentos</span>
+                        </div>
+                        {quote.notes && (
+                          <div className="mt-2 p-2 bg-accent/10 rounded border-l-4 border-primary">
+                            <p className="text-sm flex items-center">
+                              <StickyNote className="w-4 h-4 mr-1" />
+                              <strong>Nota:</strong> {quote.notes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <Button variant="destructive" size="sm" onClick={() => deleteQuote(quote.id)}>
+                          <Trash className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="comments" className="space-y-4 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Comentários Aprovados ({approvedComments.length})</h3>
+            </div>
+            {approvedComments.length === 0 ? (
+              <Card className="earth-shadow">
+                <CardContent className="pt-6 text-center">
+                  <p className="text-muted-foreground">Nenhum comentário encontrado</p>
+                </CardContent>
+              </Card>
+            ) : (
+              approvedComments.map((comment: any) => (
+                <Card key={comment.id} className="earth-shadow">
+                  <CardContent className="pt-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="mb-2">{comment.content}</p>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Por {comment.authors.name} • {new Date(comment.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                        {comment.quotes && (
+                          <div className="mt-2 p-2 bg-muted/30 rounded">
+                            <p className="text-xs text-muted-foreground">
+                              <strong>Frase comentada:</strong> "{comment.quotes.content.substring(0, 100)}..."
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <Button variant="destructive" size="sm" onClick={() => deleteComment(comment.id)}>
+                          <Trash className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="authors" className="space-y-4 mt-6">
             <div className="grid gap-4">
               {authors.map((author: any) => (
                 <Card key={author.id} className="earth-shadow">
@@ -593,7 +766,7 @@ const AdminPanel = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="create" className="space-y-6">
+          <TabsContent value="create" className="space-y-6 mt-6">
             <Card className="earth-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -655,7 +828,7 @@ const AdminPanel = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="ads" className="space-y-6">
+          <TabsContent value="ads" className="space-y-6 mt-6">
             <Card className="earth-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -708,22 +881,6 @@ const AdminPanel = () => {
                       ID do slot de anúncio padrão
                     </p>
                   </div>
-
-                  <div>
-                    <Label htmlFor="ads-frequency">Frequência de Anúncios</Label>
-                    <Input
-                      id="ads-frequency"
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={adSettings.ads_frequency}
-                      onChange={(e) => setAdSettings(prev => ({ ...prev, ads_frequency: parseInt(e.target.value) || 3 }))}
-                      onBlur={(e) => updateAdSetting('ads_frequency', parseInt(e.target.value) || 3)}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Exibir um anúncio a cada X frases (padrão: 3)
-                    </p>
-                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -755,21 +912,11 @@ const AdminPanel = () => {
                     />
                   </div>
                 </div>
-
-                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">💡 Dicas para Anúncios</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Configure sua conta no Google AdSense antes de ativar</li>
-                    <li>• Teste diferentes frequências para otimizar receita</li>
-                    <li>• Anúncios responsivos se adaptam melhor a diferentes telas</li>
-                    <li>• Monitore o desempenho regularmente no painel do AdSense</li>
-                  </ul>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="admin" className="space-y-4">
+          <TabsContent value="admin" className="space-y-4 mt-6">
             <Card className="earth-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -792,27 +939,6 @@ const AdminPanel = () => {
                     <UserPlus className="w-4 h-4 mr-2" />
                     Promover
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="earth-shadow">
-              <CardHeader>
-                <CardTitle>Configurações de Segurança</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Proteção de Senha Vazada</p>
-                      <p className="text-sm text-muted-foreground">
-                        Ative a proteção contra senhas vazadas no painel do Supabase
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-amber-600">
-                      Recomendado
-                    </Badge>
-                  </div>
                 </div>
               </CardContent>
             </Card>

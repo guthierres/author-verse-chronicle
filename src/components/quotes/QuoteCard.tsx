@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useViewTracker } from '@/hooks/useViewTracker';
 import { toast } from '@/hooks/use-toast';
 import { 
   Heart, 
@@ -55,6 +56,9 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   const [commentCount, setCommentCount] = useState(0);
   const [isReacting, setIsReacting] = useState(false);
   const [quoteNumber, setQuoteNumber] = useState<string>('');
+  
+  // Track view when component mounts
+  useViewTracker(quote.id, quote.authors.id);
 
   const shouldTruncate = !showFullContent && quote.content.length > 300;
   const displayContent = shouldTruncate 
@@ -309,9 +313,9 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             </Link>
           )}
           {quote.notes && (
-            <div className="mt-2">
-              <p className="text-[8px] text-muted-foreground/50 italic leading-tight">
-                {quote.notes}
+            <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+              <p className="text-xs text-muted-foreground/70 italic leading-relaxed">
+                Nota: {quote.notes}
               </p>
             </div>
           )}
