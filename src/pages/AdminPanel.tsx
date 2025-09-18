@@ -128,7 +128,7 @@ const AdminPanel = () => {
           key,
           value: typeof value === 'boolean' ? value.toString() : value.toString(),
           updated_at: new Date().toISOString()
-        });
+        }, { onConflict: 'key' });
 
       if (error) throw error;
 
@@ -380,9 +380,9 @@ const AdminPanel = () => {
         .from('authors')
         .select('user_id, name')
         .eq('name', newAdminEmail)
-        .single();
+        .limit(1);
 
-      if (authorError || !authorData) {
+      if (authorError || !authorData || authorData.length === 0) {
         toast({
           title: "Usuário não encontrado",
           description: "Email não encontrado no sistema",
@@ -395,7 +395,7 @@ const AdminPanel = () => {
       const { error: roleError } = await supabase
         .from('user_roles')
         .upsert({
-          user_id: authorData.user_id,
+          user_id: authorData[0].user_id,
           role: 'admin'
         });
 
@@ -438,12 +438,12 @@ const AdminPanel = () => {
         .from('authors')
         .select('id')
         .eq('name', newQuote.author_name.trim())
-        .single();
+        .limit(1);
 
-      let authorId = existingAuthor?.id;
+      let authorId = existingAuthor && existingAuthor.length > 0 ? existingAuthor[0].id : null;
 
       // If author doesn't exist, create it
-      if (!existingAuthor) {
+      if (!existingAuthor || existingAuthor.length === 0) {
         const { data: newAuthorData, error: authorError } = await supabase
           .from('authors')
           .insert({
@@ -452,13 +452,13 @@ const AdminPanel = () => {
             is_active: true
           })
           .select('id')
-          .single();
+          .limit(1);
 
         if (authorError) {
           throw authorError;
         }
 
-        authorId = newAuthorData.id;
+        authorId = newAuthorData && newAuthorData.length > 0 ? newAuthorData[0].id : null;
       }
 
       // Create the quote

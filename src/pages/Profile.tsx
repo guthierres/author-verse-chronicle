@@ -61,15 +61,16 @@ const Profile = () => {
       .from('authors')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .limit(1);
 
-    if (data) {
-      const socialLinks = data.social_links as { twitter: string; instagram: string; website: string; } | null;
+    if (data && data.length > 0) {
+      const author = data[0];
+      const socialLinks = author.social_links as { twitter: string; instagram: string; website: string; } | null;
 
-      setAuthor(data);
+      setAuthor(author);
       setFormData({
-        name: data.name || '',
-        bio: data.bio || '',
+        name: author.name || '',
+        bio: author.bio || '',
         social_links: socialLinks || {
           twitter: '',
           instagram: '',
@@ -87,9 +88,9 @@ const Profile = () => {
       .from('authors')
       .select('id')
       .eq('user_id', user.id)
-      .single();
+      .limit(1);
 
-    if (!authorData) return;
+    if (!authorData || authorData.length === 0) return;
 
     const { data, error } = await supabase
       .from('quotes')
@@ -108,7 +109,7 @@ const Profile = () => {
           is_verified
         )
       `)
-      .eq('author_id', authorData.id)
+      .eq('author_id', authorData[0].id)
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -123,20 +124,20 @@ const Profile = () => {
       .from('authors')
       .select('id')
       .eq('user_id', user.id)
-      .single();
+      .limit(1);
 
-    if (!authorData) return;
+    if (!authorData || authorData.length === 0) return;
 
     const { count: totalQuotes } = await supabase
       .from('quotes')
       .select('*', { count: 'exact', head: true })
-      .eq('author_id', authorData.id)
+      .eq('author_id', authorData[0].id)
       .eq('is_approved', true);
 
     const { data: viewsData } = await supabase
       .from('quotes')
       .select('views_count')
-      .eq('author_id', authorData.id)
+      .eq('author_id', authorData[0].id)
       .eq('is_approved', true);
 
     const totalViews = viewsData?.reduce((sum, quote) => sum + (quote.views_count || 0), 0) || 0;
@@ -144,7 +145,7 @@ const Profile = () => {
     const { data: sharesData } = await supabase
       .from('quotes')
       .select('shares_count')
-      .eq('author_id', authorData.id)
+      .eq('author_id', authorData[0].id)
       .eq('is_approved', true);
 
     const totalShares = sharesData?.reduce((sum, quote) => sum + (quote.shares_count || 0), 0) || 0;
@@ -293,12 +294,12 @@ const Profile = () => {
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Linha alterada */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {quotes.map((quote: any) => {
                           const status = getQuoteStatus(quote);
                           return (
-                            <Card key={quote.id}> {/* Linha alterada */}
-                              <CardContent className="p-4"> {/* Linha alterada */}
+                            <Card key={quote.id}>
+                              <CardContent className="p-4">
                                 <div className="flex items-start justify-between mb-2">
                                   <Badge variant={status.color as any} className="text-xs">
                                     {status.label}

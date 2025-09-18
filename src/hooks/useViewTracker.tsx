@@ -17,7 +17,7 @@ export const useViewTracker = (quoteId: string, authorId?: string) => {
           .from('quotes')
           .select('views_count')
           .eq('id', quoteId)
-          .single();
+          .maybeSingle();
 
         if (currentQuote) {
           await supabase

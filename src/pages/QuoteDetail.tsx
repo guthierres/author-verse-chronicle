@@ -57,9 +57,11 @@ const QuoteDetail = () => {
       .from('authors')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .limit(1);
 
-    setAuthor(data);
+    if (data && data.length > 0) {
+      setAuthor(data[0]);
+    }
   };
 
   const fetchQuoteByNumber = async () => {
@@ -146,12 +148,12 @@ const QuoteDetail = () => {
       .from('quotes')
       .select('views_count')
       .eq('id', quote.id)
-      .single();
+      .limit(1);
 
-    if (currentQuote) {
+    if (currentQuote && currentQuote.length > 0) {
       await supabase
         .from('quotes')
-        .update({ views_count: (currentQuote.views_count || 0) + 1 })
+        .update({ views_count: (currentQuote[0].views_count || 0) + 1 })
         .eq('id', quote.id);
     }
   };

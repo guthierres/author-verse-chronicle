@@ -25,6 +25,8 @@ interface Quote {
   };
 }
 
+const PAGE_SIZE = 10;
+
 const Timeline = () => {
   const { user } = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -32,17 +34,20 @@ const Timeline = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    fetchQuotes();
+    setQuotes([]);
+    setPage(0);
+    setHasMore(true);
+    fetchQuotes(0);
   }, [searchTerm]);
 
-  const fetchQuotes = async () => {
-    if (!searchTerm) {
-      setLoading(true);
-    } else {
-      setIsSearching(true);
-    }
+  const fetchQuotes = async (currentPage = 0) => {
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
 
     let query = supabase
       .from('quotes')
@@ -58,32 +63,49 @@ const Timeline = () => {
           avatar_url,
           is_verified
         )
-      `)
+      `, { count: 'exact' })
       .eq('is_approved', true)
       .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
     if (searchTerm) {
-      // Busca mais inteligente
       const searchWords = searchTerm.toLowerCase().split(' ').filter(word => word.length > 0);
-      const searchConditions = searchWords.map(word => 
+      const orConditions = searchWords.map(word => 
         `content.ilike.%${word}%,authors.name.ilike.%${word}%`
       ).join(',');
       
-      query = query.or(searchConditions);
+      query = query.or(orConditions);
     }
-
-    const { data, error } = await query;
+    
+    if (currentPage === 0) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    
+    const { data, error, count } = await query;
 
     if (!error && data) {
-      setQuotes(data);
-      setSearchResults(data.length);
+      if (currentPage === 0) {
+        setQuotes(data);
+        setSearchResults(count || 0);
+      } else {
+        setQuotes(prevQuotes => [...prevQuotes, ...data]);
+      }
+      setPage(currentPage + 1);
+      setHasMore(data.length === PAGE_SIZE);
+    } else if (error) {
+      console.error('Erro ao buscar frases:', error);
     }
 
-    if (!searchTerm) {
-      setLoading(false);
-    } else {
-      setIsSearching(false);
+    setLoading(false);
+    setLoadingMore(false);
+  };
+  
+  const loadMoreQuotes = () => {
+    if (!loadingMore && hasMore) {
+      fetchQuotes(page);
     }
   };
 
@@ -91,8 +113,6 @@ const Timeline = () => {
     setSearchTerm('');
     setSearchResults(0);
   };
-
-  const filteredQuotes = quotes;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5">
@@ -166,8 +186,8 @@ const Timeline = () => {
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : filteredQuotes.length > 0 ? (
-              filteredQuotes.map((quote) => (
+            ) : quotes.length > 0 ? (
+              quotes.map((quote) => (
                 <QuoteCard key={quote.id} quote={quote} />
               ))
             ) : (
@@ -175,6 +195,22 @@ const Timeline = () => {
                 <p className="text-muted-foreground text-lg">
                   {searchTerm ? 'Nenhuma frase encontrada para sua busca.' : 'Nenhuma frase disponível no momento.'}
                 </p>
+              </div>
+            )}
+            
+            {/* Load More Button */}
+            {!loading && hasMore && (
+              <div className="flex justify-center py-8">
+                <Button
+                  onClick={loadMoreQuotes}
+                  disabled={loadingMore}
+                  variant="outline"
+                  size="lg"
+                  className="px-8 py-3 text-base font-semibold hover:bg-primary hover:text-white transition-colors"
+                >
+                  {loadingMore && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                  Carregar Mais
+                </Button>
               </div>
             )}
           </div>

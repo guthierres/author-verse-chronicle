@@ -110,18 +110,18 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
       .from('authors')
       .select('id')
       .eq('user_id', user.id)
-      .single();
+      .limit(1);
 
-    if (!author) return;
+    if (!author || author.length === 0) return;
 
     const { data } = await supabase
       .from('reactions')
       .select('id')
       .eq('quote_id', quote.id)
-      .eq('author_id', author.id)
-      .single();
+      .eq('author_id', author[0].id)
+      .limit(1);
 
-    setHasReacted(!!data);
+    setHasReacted(data && data.length > 0);
   };
 
   const handleReaction = async () => {
@@ -133,9 +133,9 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
         .from('authors')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      if (!author) {
+      if (!author || author.length === 0) {
         toast({
           title: "Erro",
           description: "Perfil de autor não encontrado",
@@ -151,7 +151,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
           .from('reactions')
           .delete()
           .eq('quote_id', quote.id)
-          .eq('author_id', author.id);
+          .eq('author_id', author[0].id);
 
         if (!error) {
           setHasReacted(false);
@@ -163,7 +163,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
           .from('reactions')
           .insert({
             quote_id: quote.id,
-            author_id: author.id
+            author_id: author[0].id
           });
 
         if (!error) {
@@ -195,13 +195,13 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
         .from('authors')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      if (author) {
+      if (author && author.length > 0) {
         await supabase.from('quote_shares').insert({
           quote_id: quote.id,
           platform,
-          author_id: author.id
+          author_id: author[0].id
         });
       }
     } else {
@@ -250,19 +250,14 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.01] border-0 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 max-w-4xl mx-auto">
       <CardContent className="p-4 sm:p-6">
-        {/* Quote Number and Notes */}
+        {/* Notes and Link */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
-              #{quoteNumber}
-            </span>
-            {quote.notes && (
-              <div className="flex items-center text-muted-foreground">
-                <StickyNote className="w-3 h-3 mr-1" />
-                <span className="quote-note">Nota disponível</span>
-              </div>
-            )}
-          </div>
+          {quote.notes && (
+            <div className="flex items-center text-muted-foreground">
+              <StickyNote className="w-3 h-3 mr-1" />
+              <span className="quote-note">Nota disponível</span>
+            </div>
+          )}
           <Link 
             to={`/quote/${quoteNumber}`}
             className="text-xs text-primary hover:underline"

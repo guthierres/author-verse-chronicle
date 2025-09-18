@@ -41,10 +41,10 @@ const NewQuote = () => {
       .from('authors')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .limit(1);
 
-    if (data) {
-      setAuthor(data);
+    if (data && data.length > 0) {
+      setAuthor(data[0]);
     } else if (error) {
       console.error('Error fetching author profile:', error);
     }
