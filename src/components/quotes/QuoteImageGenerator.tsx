@@ -224,7 +224,7 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
         displayLine = `"${line}`;
       }
       if (i === lines.length - 1) {
-        displayLine = displayLine + '"';
+        displayLine = displayLine + '".';
       }
       ctx.fillText(displayLine, canvasWidth / 2, startY + i * lineHeight);
     });
