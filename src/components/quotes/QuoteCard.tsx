@@ -213,12 +213,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   };
 
   const handleShareClick = () => {
-    if (isMobile) {
-      setShareDialogOpen(true);
-    } else {
-      // Keep the old dropdown behavior for desktop
-      handleShare('copy');
-    }
+    setShareDialogOpen(true);
   };
 
   const handleShare = async (platform: string) => {
