@@ -648,10 +648,11 @@ const AdminPanel = () => {
                       </Button>
                     </div>
                   </CardContent>
-               ))
-             )}
-          </TabsContent> 
-           <TabsContent value="quotes" className="space-y-4 mt-6">
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="quotes" className="space-y-4 mt-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Frases Ativas ({approvedQuotes.length})</h3>
             </div>
