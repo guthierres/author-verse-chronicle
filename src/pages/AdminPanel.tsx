@@ -617,7 +617,8 @@ const AdminPanel = () => {
                   <CardContent className="pt-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <blockquote className="text-lg mb-2">"{quote.content}"</blockquote>
+                        <blockquote className="text-lg mb-2">"{quote.content.replace(/\.+$/, '')}".
+                        </blockquote>
                         <p className="text-sm text-muted-foreground mb-2">
                           Por {quote.authors.name} • {new Date(quote.created_at).toLocaleDateString('pt-BR')}
                         </p>

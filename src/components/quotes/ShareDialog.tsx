@@ -106,7 +106,7 @@ export const ShareDialog = ({ open, onOpenChange, quote, quoteNumber, onShare }:
           {/* Quote Preview */}
           <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-xl p-4 border">
             <blockquote className="text-sm italic text-center mb-2 leading-relaxed">
-              "{quote.content.length > 100 ? quote.content.substring(0, 100) + '...' : quote.content}"
+              "{quote.content.replace(/\.+$/, '').length > 100 ? quote.content.replace(/\.+$/, '').substring(0, 100) + '...' : quote.content.replace(/\.+$/, '')}".
             </blockquote>
             <cite className="text-xs text-muted-foreground text-center block">
               — {quote.authors.name}

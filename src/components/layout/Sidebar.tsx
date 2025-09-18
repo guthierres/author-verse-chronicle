@@ -151,7 +151,7 @@ const Sidebar = () => {
                 className="block hover:bg-accent/10 p-2 rounded-lg transition-colors"
               >
                 <p className="text-sm font-medium mb-1 leading-relaxed">
-                  "{truncateContent(quote.content)}"
+                  "{truncateContent(quote.content.replace(/\.+$/, ''))}".
                 </p>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>— {quote.authors.name}</span>

@@ -185,7 +185,7 @@ const NewQuote = () => {
                   <label className="text-sm font-medium">Pré-visualização</label>
                   <div className="p-4 bg-card border rounded-lg">
                     <blockquote className="text-lg italic">
-                      "{content.trim()}"
+                      "{content.trim().replace(/\.+$/, '')}".
                     </blockquote>
                     <cite className="block mt-2 text-sm text-muted-foreground">
                       — {author?.name || 'Você'}

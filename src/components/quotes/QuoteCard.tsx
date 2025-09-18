@@ -55,9 +55,12 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   useViewTracker(quote.id, quote.authors.id);
 
   const shouldTruncate = !showFullContent && quote.content.length > 300;
+  
+  // Remove ponto final do conteúdo se existir para adicionar após as aspas
+  const cleanContent = quote.content.replace(/\.+$/, '');
   const displayContent = shouldTruncate 
-    ? quote.content.substring(0, 300) + '...' 
-    : quote.content;
+    ? cleanContent.substring(0, 300) + '...' 
+    : cleanContent;
 
   useEffect(() => {
     checkUserReaction();

@@ -112,7 +112,7 @@ export const MobileSidebar = () => {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-justify leading-tight">
-                    "{truncateText(quote.content, 80)}"
+                    "{truncateText(quote.content.replace(/\.+$/, ''), 80)}".
                   </p>
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-muted-foreground truncate">
