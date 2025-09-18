@@ -5,6 +5,7 @@ import QuoteCard from '@/components/quotes/QuoteCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search, Plus, Filter, X } from 'lucide-react';
+import { Quote } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MobileSidebar } from '@/components/sidebar/MobileSidebar';
 import Sidebar from '@/components/layout/Sidebar';
@@ -49,7 +50,14 @@ const Timeline = () => {
     const from = currentPage * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
-    let query = supabase
+    if (currentPage === 0) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
+    try {
+      let query = supabase
       .from('quotes')
       .select(`
         id,
@@ -63,44 +71,45 @@ const Timeline = () => {
           avatar_url,
           is_verified
         )
-      `, { count: 'exact' })
+        `)
       .eq('is_approved', true)
       .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .range(from, to);
+        .order('created_at', { ascending: false });
 
-    if (searchTerm) {
-      const searchWords = searchTerm.toLowerCase().split(' ').filter(word => word.length > 0);
-      const orConditions = searchWords.map(word => 
-        `content.ilike.%${word}%,authors.name.ilike.%${word}%`
-      ).join(',');
-      
-      query = query.or(orConditions);
-    }
-    
-    if (currentPage === 0) {
-      setLoading(true);
-    } else {
-      setLoadingMore(true);
-    }
-    
-    const { data, error, count } = await query;
+      if (searchTerm.trim()) {
+        const searchTerms = searchTerm.toLowerCase().trim().split(' ').filter(word => word.length > 0);
+        
+        // Build OR conditions for content and author name
+        const contentConditions = searchTerms.map(term => `content.ilike.%${term}%`).join(',');
+        const authorConditions = searchTerms.map(term => `authors.name.ilike.%${term}%`).join(',');
+        
+        query = query.or(`${contentConditions},${authorConditions}`);
+      }
 
-    if (!error && data) {
+      // Apply pagination
+      query = query.range(from, to);
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Erro ao buscar frases:', error);
+        return;
+      }
+
       if (currentPage === 0) {
         setQuotes(data);
-        setSearchResults(count || 0);
+        setSearchResults(data.length);
       } else {
         setQuotes(prevQuotes => [...prevQuotes, ...data]);
       }
       setPage(currentPage + 1);
       setHasMore(data.length === PAGE_SIZE);
-    } else if (error) {
+    } catch (error) {
       console.error('Erro ao buscar frases:', error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-
-    setLoading(false);
-    setLoadingMore(false);
   };
   
   const loadMoreQuotes = () => {
@@ -120,11 +129,14 @@ const Timeline = () => {
       <div className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-b">
         <div className="container mx-auto px-4 py-8 sm:py-12">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-primary to-secondary rounded-full mb-4 shadow-lg">
-              <Search className="w-8 h-8 text-white" />
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-full blur opacity-25 group-hover:opacity-40 transition-opacity"></div>
+              <div className="relative inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-primary to-secondary rounded-full mb-4 shadow-lg">
+                <Quote className="w-8 h-8 text-white" />
+              </div>
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent mb-4">
-              Timeline de Frases
+              ParaFrase
             </h1>
             <p className="text-xl sm:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Descubra e compartilhe frases inspiradoras de autores incríveis

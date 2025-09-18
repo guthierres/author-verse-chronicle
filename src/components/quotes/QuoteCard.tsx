@@ -106,6 +106,10 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   const checkUserReaction = async () => {
     if (!user) return;
 
+    // Check localStorage first for immediate feedback
+    const reactionKey = `reaction_${quote.id}_${user.id}`;
+    const localReaction = localStorage.getItem(reactionKey);
+    
     const { data: author } = await supabase
       .from('authors')
       .select('id')
@@ -121,10 +125,21 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
       .eq('author_id', author[0].id)
       .limit(1);
 
-    setHasReacted(data && data.length > 0);
+    const dbHasReaction = data && data.length > 0;
+    
+    // Sync localStorage with database
+    if (dbHasReaction && !localReaction) {
+      localStorage.setItem(reactionKey, 'true');
+    } else if (!dbHasReaction && localReaction) {
+      localStorage.removeItem(reactionKey);
+    }
+    
+    setHasReacted(dbHasReaction);
   };
 
   const handleReaction = async () => {
+    if (isReacting) return;
+    
     setIsReacting(true);
 
     if (user) {
@@ -156,6 +171,10 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
         if (!error) {
           setHasReacted(false);
           setReactionCount(prev => prev - 1);
+          
+          // Store in localStorage for persistence
+          const reactionKey = `reaction_${quote.id}_${user.id}`;
+          localStorage.removeItem(reactionKey);
         }
       } else {
         // Add reaction
@@ -169,17 +188,19 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
         if (!error) {
           setHasReacted(true);
           setReactionCount(prev => prev + 1);
+          
+          // Store in localStorage for persistence
+          const reactionKey = `reaction_${quote.id}_${user.id}`;
+          localStorage.setItem(reactionKey, 'true');
         }
       }
     } else {
-      // Anonymous reaction - just update count locally
-      if (hasReacted) {
-        setHasReacted(false);
-        setReactionCount(prev => prev - 1);
-      } else {
-        setHasReacted(true);
-        setReactionCount(prev => prev + 1);
-      }
+      // For anonymous users, redirect to login
+      toast({
+        title: "Login necessário",
+        description: "Você precisa estar logado para reagir às frases.",
+        variant: "destructive"
+      });
     }
 
     setIsReacting(false);
@@ -250,20 +271,14 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.01] border-0 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 max-w-4xl mx-auto">
       <CardContent className="p-4 sm:p-6">
-        {/* Notes and Link */}
-        <div className="flex items-center justify-between mb-3">
+        {/* Notes */}
+        <div className="flex items-center justify-start mb-3">
           {quote.notes && (
             <div className="flex items-center text-muted-foreground">
               <StickyNote className="w-3 h-3 mr-1" />
               <span className="quote-note">Nota disponível</span>
             </div>
           )}
-          <Link 
-            to={`/quote/${quoteNumber}`}
-            className="text-xs text-primary hover:underline"
-          >
-            Link direto
-          </Link>
         </div>
 
         {/* Author info */}
@@ -295,7 +310,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
         </div>
 
         {/* Quote content */}
-        <div className="mb-6">
+        <div className="mb-6 cursor-pointer" onClick={() => window.location.href = `/quote/${quoteNumber}`}>
           <blockquote className="text-lg sm:text-xl leading-relaxed text-foreground font-medium text-justify max-w-none">
             "{displayContent}".
           </blockquote>
