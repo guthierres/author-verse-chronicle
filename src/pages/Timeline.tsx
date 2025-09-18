@@ -69,33 +69,30 @@ const Timeline = () => {
 
     try {
       let query = supabase
-      .from('quotes')
-      .select(`
-        id,
-        content,
-        created_at,
-        views_count,
-        shares_count,
-        likes_count,
-        authors (
+        .from('quotes')
+        .select(`
           id,
-          name,
-          avatar_url,
-          is_verified
-        )
+          content,
+          created_at,
+          views_count,
+          shares_count,
+          likes_count,
+          authors (
+            id,
+            name,
+            avatar_url,
+            is_verified
+          )
         `)
-      .eq('is_approved', true)
-      .eq('is_active', true)
+        .eq('is_approved', true)
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (debouncedSearchTerm.trim()) {
-        const searchTerms = debouncedSearchTerm.toLowerCase().trim().split(' ').filter(word => word.length > 0);
+        const searchTerm = debouncedSearchTerm.toLowerCase().trim();
         
-        // Build OR conditions for content and author name
-        const contentConditions = searchTerms.map(term => `content.ilike.%${term}%`).join(',');
-        const authorConditions = searchTerms.map(term => `authors.name.ilike.%${term}%`).join(',');
-        
-        query = query.or(`${contentConditions},${authorConditions}`);
+        // Use textSearch for better full-text search or ilike for partial matches
+        query = query.or(`content.ilike.%${searchTerm}%,authors.name.ilike.%${searchTerm}%`);
       }
 
       // Apply pagination
@@ -105,19 +102,25 @@ const Timeline = () => {
 
       if (error) {
         console.error('Erro ao buscar frases:', error);
+        setQuotes([]);
+        setSearchResults(0);
         return;
       }
 
       if (currentPage === 0) {
-        setQuotes(data);
-        setSearchResults(data.length);
+        setQuotes(data || []);
+        setSearchResults((data || []).length);
       } else {
-        setQuotes(prevQuotes => [...prevQuotes, ...data]);
+        setQuotes(prevQuotes => [...prevQuotes, ...(data || [])]);
       }
+      
+      const dataLength = (data || []).length;
       setPage(currentPage + 1);
-      setHasMore(data.length === PAGE_SIZE);
+      setHasMore(dataLength === PAGE_SIZE);
     } catch (error) {
       console.error('Erro ao buscar frases:', error);
+      setQuotes([]);
+      setSearchResults(0);
     } finally {
       setLoading(false);
       setLoadingMore(false);
