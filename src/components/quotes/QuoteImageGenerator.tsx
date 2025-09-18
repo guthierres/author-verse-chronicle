@@ -34,7 +34,8 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
     
     const canvasWidth = 1200;
     const canvasHeight = 900;
-    // Create gradient background
+    
+    // Create gradient background matching ParaFrase brand colors
     const gradient = ctx.createLinearGradient(0, 0, canvasWidth, canvasHeight);
     gradient.addColorStop(0, 'hsl(18, 55%, 51%)'); // Coral
     gradient.addColorStop(0.5, 'hsl(19, 60%, 51%)'); // Middle tone
@@ -43,7 +44,7 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // Add subtle pattern overlay
+    // Add subtle pattern overlay for texture
     ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
     for (let i = 0; i < canvasWidth; i += 40) {
       for (let j = 0; j < canvasHeight; j += 40) {
@@ -51,6 +52,17 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
       }
     }
 
+    // Add ParaFrase logo area (simplified geometric representation)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.beginPath();
+    ctx.roundRect(100, 100, 80, 80, 20);
+    ctx.fill();
+    
+    // Quote icon representation
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = 'bold 40px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('"', 140, 150);
     // Quote text styling
     ctx.fillStyle = 'white';
     ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
@@ -122,21 +134,27 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
     ctx.lineTo(canvasWidth / 2 + 100, startY + lines.length * lineHeight + 140);
     ctx.stroke();
 
-    // Watermark
+    // Enhanced watermark with ParaFrase branding
     ctx.font = '18px Arial, sans-serif';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.textAlign = 'right';
-    ctx.fillText('ParaFrase.com', canvasWidth - 40, canvasHeight - 40);
+    ctx.fillText('ParaFrase - Frases que inspiram', canvasWidth - 40, canvasHeight - 40);
+    
+    // Add ParaFrase logo text in top left
+    ctx.font = 'bold 24px Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.textAlign = 'left';
+    ctx.fillText('ParaFrase', 200, 140);
 
     // Download image
     const link = document.createElement('a');
-    link.download = `frase-${quote.authors.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+    link.download = `parafrase-${quote.authors.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
     link.href = canvas.toDataURL('image/png', 1.0);
     link.click();
 
     toast({
       title: "Imagem gerada!",
-      description: "A imagem da frase foi baixada com sucesso."
+      description: "A imagem da frase foi baixada com a marca ParaFrase."
     });
   };
 
