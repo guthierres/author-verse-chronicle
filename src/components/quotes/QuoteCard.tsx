@@ -248,7 +248,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   });
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-0 shadow-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 earth-shadow">
+    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.01] border-0 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 max-w-4xl mx-auto">
       <CardContent className="p-4 sm:p-6">
         {/* Quote Number and Notes */}
         <div className="flex items-center justify-between mb-3">
@@ -301,7 +301,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
 
         {/* Quote content */}
         <div className="mb-6">
-          <blockquote className="text-lg sm:text-xl leading-relaxed text-foreground font-medium text-justify">
+          <blockquote className="text-lg sm:text-xl leading-relaxed text-foreground font-medium text-justify max-w-none">
             "{displayContent}".
           </blockquote>
           {shouldTruncate && (
@@ -353,7 +353,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="default" className="rounded-full px-4 earth-gradient text-white border-0 hover:opacity-90">
+              <Button variant="outline" size="default" className="rounded-full px-4 bg-gradient-to-r from-primary to-secondary text-white border-0 hover:from-primary/90 hover:to-secondary/90 shadow-lg">
                 <Share2 className="w-4 h-4 mr-1" />
                 <span className="hidden sm:inline">Compartilhar</span>
               </Button>

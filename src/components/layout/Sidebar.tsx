@@ -123,20 +123,20 @@ const Sidebar = () => {
   }
 
   return (
-    <aside className="w-80 p-4 space-y-6 bg-sidebar border-l border-sidebar-border">
+    <aside className="w-full space-y-6">
       {/* Ad Banner */}
-      <div className="sticky top-4">
+      <div className="sticky top-6">
         <AdBanner 
           format="rectangle" 
           responsive={true}
-          className="w-full max-w-[300px] mx-auto"
+          className="w-full"
         />
       </div>
 
       {/* Popular Quotes */}
-      <Card className="earth-shadow">
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center text-lg">
+          <CardTitle className="flex items-center text-lg font-bold">
             <TrendingUp className="w-5 h-5 mr-2 text-primary" />
             Frases Populares
           </CardTitle>
@@ -148,7 +148,7 @@ const Sidebar = () => {
                 to={`/quote/${quote.id}`}
                 className="block hover:bg-accent/10 p-2 rounded-lg transition-colors"
               >
-                <p className="text-sm font-medium mb-1">
+                <p className="text-sm font-medium mb-1 leading-relaxed">
                   "{truncateContent(quote.content)}"
                 </p>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -166,9 +166,9 @@ const Sidebar = () => {
       </Card>
 
       {/* Popular Authors */}
-      <Card className="earth-shadow">
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center text-lg">
+          <CardTitle className="flex items-center text-lg font-bold">
             <Users className="w-5 h-5 mr-2 text-primary" />
             Autores em Destaque
           </CardTitle>
@@ -190,7 +190,7 @@ const Sidebar = () => {
                   <div className="flex items-center space-x-1">
                     <p className="text-sm font-medium truncate">{author.name}</p>
                     {author.is_verified && (
-                      <Badge variant="secondary" className="text-xs">✓</Badge>
+                      <Badge variant="default" className="text-xs bg-gradient-to-r from-primary to-secondary text-white">✓</Badge>
                     )}
                   </div>
                   <div className="flex items-center space-x-2 text-xs text-muted-foreground">
@@ -215,7 +215,7 @@ const Sidebar = () => {
       <AdBanner 
         format="rectangle" 
         responsive={true}
-        className="w-full max-w-[300px] mx-auto"
+        className="w-full"
       />
     </aside>
   );

@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Quote, User, PlusCircle, LogOut, Settings, Shield, Menu } from 'lucide-react';
+import { Quote, User, PlusCircle, LogOut, Settings, Shield, Menu, Sparkles } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const Header = () => {
@@ -25,36 +25,51 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
-      <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 earth-gradient rounded-xl flex items-center justify-center shadow-lg">
-            <Quote className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+    <header className="sticky top-0 z-50 w-full border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-slate-900/60 shadow-lg border-white/20">
+      <div className="container mx-auto px-4 h-16 sm:h-18 flex items-center justify-between">
+        <Link to="/" className="flex items-center space-x-3 group">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-xl blur opacity-25 group-hover:opacity-40 transition-opacity"></div>
+            <div className="relative w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-primary to-secondary rounded-xl flex items-center justify-center shadow-xl">
+              <Quote className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            </div>
           </div>
-          <span className="font-bold text-xl sm:text-2xl text-foreground">
-            ParaFrase
-          </span>
+          <div className="flex flex-col">
+            <span className="font-bold text-xl sm:text-2xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              ParaFrase
+            </span>
+            <span className="text-xs text-muted-foreground font-medium hidden sm:block">
+              Frases que inspiram
+            </span>
+          </div>
         </Link>
 
-        <nav className="hidden sm:flex items-center space-x-4 lg:space-x-6">
+        <nav className="hidden md:flex items-center space-x-6 lg:space-x-8">
           <Link 
             to="/" 
-            className="text-muted-foreground hover:text-primary transition-colors text-sm lg:text-base font-medium"
+            className="relative text-muted-foreground hover:text-primary transition-all duration-300 text-base font-semibold group"
           >
+            <span className="relative z-10">
             Timeline
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity -m-2"></div>
           </Link>
           <Link 
             to="/authors" 
-            className="text-muted-foreground hover:text-primary transition-colors text-sm lg:text-base font-medium"
+            className="relative text-muted-foreground hover:text-primary transition-all duration-300 text-base font-semibold group"
           >
+            <span className="relative z-10 flex items-center">
+              <Sparkles className="w-4 h-4 mr-1" />
             Autores
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity -m-2"></div>
           </Link>
         </nav>
 
-        <div className="flex items-center space-x-2 sm:space-x-4">
+        <div className="flex items-center space-x-3 sm:space-x-4">
           {user ? (
             <>
-              <Button asChild size="sm" className="hidden sm:flex earth-gradient hover:opacity-90">
+              <Button asChild size="sm" className="hidden lg:flex bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg font-semibold">
                 <Link to="/new-quote">
                   <PlusCircle className="w-4 h-4 mr-2" />
                   Nova Frase
@@ -123,7 +138,7 @@ const Header = () => {
               </Sheet>
 
               <DropdownMenu>
-                <DropdownMenuTrigger asChild className="hidden sm:flex">
+                <DropdownMenuTrigger asChild className="hidden md:flex">
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src="" alt="Avatar" />
@@ -133,7 +148,7 @@ const Header = () => {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuContent className="w-64" align="end" forceMount>
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
                       <p className="font-medium text-sm">{user.user_metadata?.name || user.email}</p>
@@ -169,7 +184,7 @@ const Header = () => {
               </DropdownMenu>
             </>
           ) : (
-            <Button asChild size="sm" className="earth-gradient hover:opacity-90">
+            <Button asChild size="sm" className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg font-semibold">
               <Link to="/auth">Entrar</Link>
             </Button>
           )}

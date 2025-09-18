@@ -4,10 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import QuoteCard from '@/components/quotes/QuoteCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, Plus } from 'lucide-react';
+import { Loader2, Search, Plus, Filter, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MobileSidebar } from '@/components/sidebar/MobileSidebar';
 import Sidebar from '@/components/layout/Sidebar';
+import { Badge } from '@/components/ui/badge';
 
 interface Quote {
   id: string;
@@ -29,13 +30,19 @@ const Timeline = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     fetchQuotes();
   }, [searchTerm]);
 
   const fetchQuotes = async () => {
-    setLoading(true);
+    if (!searchTerm) {
+      setLoading(true);
+    } else {
+      setIsSearching(true);
+    }
 
     let query = supabase
       .from('quotes')
@@ -57,64 +64,104 @@ const Timeline = () => {
       .order('created_at', { ascending: false });
 
     if (searchTerm) {
-      query = query.or(
-        `content.ilike.%${searchTerm}%,authors.name.ilike.%${searchTerm}%`
-      );
+      // Busca mais inteligente
+      const searchWords = searchTerm.toLowerCase().split(' ').filter(word => word.length > 0);
+      const searchConditions = searchWords.map(word => 
+        `content.ilike.%${word}%,authors.name.ilike.%${word}%`
+      ).join(',');
+      
+      query = query.or(searchConditions);
     }
 
     const { data, error } = await query;
 
     if (!error && data) {
       setQuotes(data);
+      setSearchResults(data.length);
     }
 
-    setLoading(false);
+    if (!searchTerm) {
+      setLoading(false);
+    } else {
+      setIsSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
+    setSearchResults(0);
   };
 
   const filteredQuotes = quotes;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-accent/20">
-      <div className="container mx-auto px-4 py-6 sm:py-8">
-        {/* Header Section */}
-        <div className="text-center mb-8 space-y-4">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-2">
-            Timeline de Frases
-          </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
-            Descubra frases inspiradoras de autores incríveis
-          </p>
-          
-          {/* Search and Action Bar - Responsive Layout */}
-          <div className="flex flex-col lg:flex-row items-center justify-center gap-4 max-w-4xl mx-auto">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar frases ou autores..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/80 backdrop-blur border-none shadow-sm"
-              />
+    <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-b">
+        <div className="container mx-auto px-4 py-8 sm:py-12">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-primary to-secondary rounded-full mb-4 shadow-lg">
+              <Search className="w-8 h-8 text-white" />
             </div>
-
-            {/* New Quote Button - Mobile: below search, Desktop: aligned with sidebar */}
-            {user && (
-              <div className="w-full lg:w-auto flex justify-center lg:justify-end lg:min-w-[280px]">
-                <Button asChild className="earth-gradient hover:opacity-90 text-white shadow-lg flex-shrink-0">
-                  <Link to="/new-quote">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Compartilhar Nova Frase
-                  </Link>
-                </Button>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent mb-4">
+              Timeline de Frases
+            </h1>
+            <p className="text-xl sm:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Descubra e compartilhe frases inspiradoras de autores incríveis
+            </p>
+          </div>
+          
+          {/* Enhanced Search Bar */}
+          <div className="max-w-2xl mx-auto">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity"></div>
+              <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-white/20 backdrop-blur-sm">
+                <div className="flex items-center p-2">
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-primary to-secondary rounded-xl mr-3 flex-shrink-0">
+                    <Search className="w-5 h-5 text-white" />
+                  </div>
+                  <Input
+                    placeholder="Busque por frases, autores, palavras-chave..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="flex-1 border-none bg-transparent text-lg placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                  {searchTerm && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearSearch}
+                      className="mr-2 hover:bg-muted/50 rounded-xl"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {isSearching && (
+                    <div className="mr-3">
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Search Results Info */}
+            {searchTerm && (
+              <div className="mt-4 text-center">
+                <Badge variant="secondary" className="text-sm px-4 py-2">
+                  {searchResults} {searchResults === 1 ? 'resultado encontrado' : 'resultados encontrados'} para "{searchTerm}"
+                </Badge>
               </div>
             )}
           </div>
         </div>
+      </div>
 
+      <div className="container mx-auto px-4 py-8">
         {/* Content Layout */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col xl:flex-row gap-8 max-w-7xl mx-auto">
           {/* Main Content */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 max-w-4xl mx-auto xl:mx-0 space-y-6">
             {loading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -133,16 +180,38 @@ const Timeline = () => {
           </div>
 
           {/* Desktop Sidebar */}
-          <div className="hidden lg:block">
+          <div className="hidden xl:block xl:w-80 flex-shrink-0">
+            {/* Add Quote Button for Desktop */}
+            {user && (
+              <div className="mb-6">
+                <Button asChild className="w-full earth-gradient hover:opacity-90 text-white shadow-lg h-12 text-base font-semibold">
+                  <Link to="/new-quote">
+                    <Plus className="w-5 h-5 mr-2" />
+                    Compartilhar Nova Frase
+                  </Link>
+                </Button>
+              </div>
+            )}
             <Sidebar />
           </div>
         </div>
       </div>
 
-      {/* Mobile Sidebar - shows at bottom on mobile */}
-      <div className="lg:hidden">
+      {/* Mobile Sidebar */}
+      <div className="xl:hidden">
         <MobileSidebar />
       </div>
+      
+      {/* Mobile Add Quote Button */}
+      {user && (
+        <div className="xl:hidden fixed bottom-6 right-6 z-50">
+          <Button asChild className="earth-gradient hover:opacity-90 text-white shadow-2xl w-14 h-14 rounded-full">
+            <Link to="/new-quote">
+              <Plus className="w-6 h-6" />
+            </Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
