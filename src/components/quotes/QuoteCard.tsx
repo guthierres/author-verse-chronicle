@@ -26,6 +26,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { QuoteImageGenerator } from './QuoteImageGenerator';
 
@@ -253,6 +254,13 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
 
     let shareUrl = '';
     switch (platform) {
+      case 'copy-quote':
+        await navigator.clipboard.writeText(text);
+        toast({
+          title: "Frase copiada!",
+          description: "A frase foi copiada para a área de transferência."
+        });
+        return;
       case 'twitter':
         shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(quoteUrl)}`;
         break;
@@ -382,15 +390,15 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem asChild>
-                <div className="w-full">
-                  <QuoteImageGenerator quote={quote} />
-                </div>
+              <DropdownMenuItem onClick={() => handleShare('copy-quote')}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copiar frase
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleShare('copy')}>
                 <Copy className="mr-2 h-4 w-4" />
                 Copiar link
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handleShare('twitter')}>
                 <Twitter className="mr-2 h-4 w-4" />
                 Twitter
@@ -402,6 +410,12 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
               <DropdownMenuItem onClick={() => handleShare('whatsapp')}>
                 <MessageSquare className="mr-2 h-4 w-4" />
                 WhatsApp
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <div className="w-full">
+                  <QuoteImageGenerator quote={quote} />
+                </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
