@@ -63,6 +63,7 @@ const Timeline = () => {
 
     if (currentPage === 0) {
       setLoading(true);
+      setIsSearching(true);
     } else {
       setLoadingMore(true);
     }
@@ -77,6 +78,7 @@ const Timeline = () => {
           views_count,
           shares_count,
           likes_count,
+          notes,
           authors (
             id,
             name,
@@ -86,37 +88,111 @@ const Timeline = () => {
         `)
         .eq('is_approved', true)
         .eq('is_active', true)
-        .order('created_at', { ascending: false });
 
       if (debouncedSearchTerm.trim()) {
-        const searchTerm = debouncedSearchTerm.toLowerCase().trim();
+        const searchTerm = debouncedSearchTerm.trim();
         
-        // Use textSearch for better full-text search or ilike for partial matches
-        query = query.or(`content.ilike.%${searchTerm}%,authors.name.ilike.%${searchTerm}%`);
-      }
+        // Buscar primeiro por conteúdo da frase
+        const { data: contentResults } = await supabase
+          .from('quotes')
+          .select(`
+            id,
+            content,
+            created_at,
+            views_count,
+            shares_count,
+            likes_count,
+            notes,
+            authors (
+              id,
+              name,
+              avatar_url,
+              is_verified
+            )
+          `)
+          .eq('is_approved', true)
+          .eq('is_active', true)
+          .ilike('content', `%${searchTerm}%`)
+          .order('created_at', { ascending: false })
+          .range(from, to);
 
-      // Apply pagination
-      query = query.range(from, to);
+        // Buscar por nome do autor
+        const { data: authorResults } = await supabase
+          .from('quotes')
+          .select(`
+            id,
+            content,
+            created_at,
+            views_count,
+            shares_count,
+            likes_count,
+            notes,
+            authors!inner (
+              id,
+              name,
+              avatar_url,
+              is_verified
+            )
+          `)
+          .eq('is_approved', true)
+          .eq('is_active', true)
+          .ilike('authors.name', `%${searchTerm}%`)
+          .order('created_at', { ascending: false })
+          .range(from, to);
 
-      const { data, error } = await query;
+        // Combinar resultados e remover duplicatas
+        const allResults = [...(contentResults || []), ...(authorResults || [])];
+        const uniqueResults = allResults.filter((quote, index, self) => 
+          index === self.findIndex(q => q.id === quote.id)
+        );
 
-      if (error) {
-        console.error('Erro ao buscar frases:', error);
-        setQuotes([]);
-        setSearchResults(0);
-        return;
-      }
+        // Ordenar por data de criação
+        uniqueResults.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      if (currentPage === 0) {
-        setQuotes(data || []);
-        setSearchResults((data || []).length);
+        if (currentPage === 0) {
+          setQuotes(uniqueResults);
+          setSearchResults(uniqueResults.length);
+        } else {
+          setQuotes(prevQuotes => {
+            const combined = [...prevQuotes, ...uniqueResults];
+            const unique = combined.filter((quote, index, self) => 
+              index === self.findIndex(q => q.id === quote.id)
+            );
+            return unique;
+          });
+        }
+        
+        setPage(currentPage + 1);
+        setHasMore(uniqueResults.length === PAGE_SIZE);
+        
       } else {
-        setQuotes(prevQuotes => [...prevQuotes, ...(data || [])]);
+        // Busca normal sem filtro
+        query = query.order('created_at', { ascending: false });
+        
+        // Apply pagination
+        query = query.range(from, to);
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('Erro ao buscar frases:', error);
+          setQuotes([]);
+          setSearchResults(0);
+          return;
+        }
+
+        if (currentPage === 0) {
+          setQuotes(data || []);
+          setSearchResults(0); // Reset search results for normal browsing
+        } else {
+          setQuotes(prevQuotes => [...prevQuotes, ...(data || [])]);
+        }
+        
+        const dataLength = (data || []).length;
+        setPage(currentPage + 1);
+        setHasMore(dataLength === PAGE_SIZE);
       }
-      
-      const dataLength = (data || []).length;
-      setPage(currentPage + 1);
-      setHasMore(dataLength === PAGE_SIZE);
+
     } catch (error) {
       console.error('Erro ao buscar frases:', error);
       setQuotes([]);
@@ -124,6 +200,7 @@ const Timeline = () => {
     } finally {
       setLoading(false);
       setLoadingMore(false);
+      setIsSearching(false);
     }
   };
   
@@ -195,9 +272,16 @@ const Timeline = () => {
             {/* Search Results Info */}
             {searchTerm && (
               <div className="mt-4 text-center">
-                <Badge variant="secondary" className="text-sm px-4 py-2">
-                  {searchResults} {searchResults === 1 ? 'resultado encontrado' : 'resultados encontrados'} para "{searchTerm}"
-                </Badge>
+                {isSearching ? (
+                  <Badge variant="secondary" className="text-sm px-4 py-2">
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    Buscando...
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-sm px-4 py-2">
+                    {searchResults} {searchResults === 1 ? 'resultado encontrado' : 'resultados encontrados'} para "{searchTerm}"
+                  </Badge>
+                )}
               </div>
             )}
           </div>
@@ -219,9 +303,15 @@ const Timeline = () => {
               ))
             ) : (
               <div className="text-center py-12">
+                <Quote className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground text-lg">
-                  {searchTerm ? 'Nenhuma frase encontrada para sua busca.' : 'Nenhuma frase disponível no momento.'}
+                  {searchTerm ? `Nenhuma frase encontrada para "${searchTerm}"` : 'Nenhuma frase disponível no momento.'}
                 </p>
+                {searchTerm && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Tente buscar por outras palavras-chave ou nomes de autores
+                  </p>
+                )}
               </div>
             )}
             
