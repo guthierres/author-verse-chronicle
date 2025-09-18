@@ -120,25 +120,30 @@ const AdminPanel = () => {
 
   const updateAdSetting = async (key: string, value: any) => {
     try {
+      console.log('Atualizando configuração:', key, value);
+      
       const { error } = await supabase
         .from('site_settings')
         .upsert({
           key,
-          value: typeof value === 'boolean' ? value.toString() : value.toString()
+          value: typeof value === 'boolean' ? value.toString() : value.toString(),
+          updated_at: new Date().toISOString()
         });
 
       if (error) throw error;
 
-      setAdSettings(prev => ({ ...prev, [key]: value }));
       toast({
         title: "Configuração atualizada",
         description: "As configurações de anúncios foram salvas com sucesso."
       });
+      
+      // Recarregar configurações para garantir sincronização
+      await fetchAdSettings();
     } catch (error) {
       console.error('Erro ao atualizar configuração:', error);
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar a configuração.",
+        description: `Não foi possível salvar a configuração: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -550,35 +555,55 @@ const AdminPanel = () => {
 
         <Tabs defaultValue="pending-quotes" className="w-full">
           <div className="overflow-x-auto">
-            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground min-w-full lg:min-w-0">
+            <TabsList className="inline-flex h-12 items-center justify-center rounded-lg bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 p-1 text-muted-foreground min-w-full lg:min-w-0 shadow-lg">
               <TabsTrigger value="pending-quotes" className="text-xs sm:text-sm">
-                Pendentes ({stats.pendingQuotes})
+                <AlertCircle className="w-4 h-4 mr-1" />
+                Frases ({stats.pendingQuotes})
               </TabsTrigger>
               <TabsTrigger value="pending-comments" className="text-xs sm:text-sm">
-                Coment. Pend. ({stats.pendingComments})
+                <MessageCircle className="w-4 h-4 mr-1" />
+                Comentários ({stats.pendingComments})
               </TabsTrigger>
               <TabsTrigger value="quotes" className="text-xs sm:text-sm">
-                Frases Ativas
+                <Quote className="w-4 h-4 mr-1" />
+                Ativas
               </TabsTrigger>
               <TabsTrigger value="comments" className="text-xs sm:text-sm">
-                Comentários
+                <MessageCircle className="w-4 h-4 mr-1" />
+                Aprovados
               </TabsTrigger>
               <TabsTrigger value="authors" className="text-xs sm:text-sm">
+                <Users className="w-4 h-4 mr-1" />
                 Autores
               </TabsTrigger>
               <TabsTrigger value="create" className="text-xs sm:text-sm">
+                <Plus className="w-4 h-4 mr-1" />
                 Criar
               </TabsTrigger>
               <TabsTrigger value="ads" className="text-xs sm:text-sm">
+                <Megaphone className="w-4 h-4 mr-1" />
                 Ads
               </TabsTrigger>
               <TabsTrigger value="admin" className="text-xs sm:text-sm">
+                <Shield className="w-4 h-4 mr-1" />
                 Admin
               </TabsTrigger>
             </TabsList>
           </div>
 
           <TabsContent value="pending-quotes" className="space-y-4 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Frases Pendentes de Aprovação ({pendingQuotes.length})</h3>
+              <Button 
+                onClick={fetchAllData} 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Atualizar
+              </Button>
+            </div>
             {pendingQuotes.length === 0 ? (
               <Card className="earth-shadow">
                 <CardContent className="pt-6 text-center">
@@ -620,6 +645,18 @@ const AdminPanel = () => {
           </TabsContent>
 
           <TabsContent value="pending-comments" className="space-y-4 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Comentários Pendentes ({pendingComments.length})</h3>
+              <Button 
+                onClick={fetchAllData} 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Atualizar
+              </Button>
+            </div>
             {pendingComments.length === 0 ? (
               <Card className="earth-shadow">
                 <CardContent className="pt-6 text-center">
@@ -652,6 +689,17 @@ const AdminPanel = () => {
           <TabsContent value="quotes" className="space-y-4 mt-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Frases Ativas ({approvedQuotes.length})</h3>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={fetchAllData} 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  Atualizar
+                </Button>
+              </div>
             </div>
             {approvedQuotes.length === 0 ? (
               <Card className="earth-shadow">
@@ -697,6 +745,15 @@ const AdminPanel = () => {
           <TabsContent value="comments" className="space-y-4 mt-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Comentários Aprovados ({approvedComments.length})</h3>
+              <Button 
+                onClick={fetchAllData} 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Atualizar
+              </Button>
             </div>
             {approvedComments.length === 0 ? (
               <Card className="earth-shadow">
@@ -735,6 +792,18 @@ const AdminPanel = () => {
           </TabsContent>
 
           <TabsContent value="authors" className="space-y-4 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Gerenciar Autores ({authors.length})</h3>
+              <Button 
+                onClick={fetchAllData} 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Atualizar
+              </Button>
+            </div>
             <div className="grid gap-4">
               {authors.map((author: any) => (
                 <Card key={author.id} className="earth-shadow">
@@ -850,7 +919,10 @@ const AdminPanel = () => {
                   <Switch
                     id="ads-enabled"
                     checked={adSettings.ads_enabled}
-                    onCheckedChange={(checked) => updateAdSetting('ads_enabled', checked)}
+                    onCheckedChange={(checked) => {
+                      setAdSettings(prev => ({ ...prev, ads_enabled: checked }));
+                      updateAdSetting('ads_enabled', checked);
+                    }}
                   />
                 </div>
 
@@ -861,7 +933,10 @@ const AdminPanel = () => {
                       id="adsense-client"
                       placeholder="ca-pub-xxxxxxxxxxxxxxxxx"
                       value={adSettings.google_adsense_client}
-                      onChange={(e) => setAdSettings(prev => ({ ...prev, google_adsense_client: e.target.value }))}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setAdSettings(prev => ({ ...prev, google_adsense_client: value }));
+                      }}
                       onBlur={(e) => updateAdSetting('google_adsense_client', e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
@@ -875,7 +950,10 @@ const AdminPanel = () => {
                       id="adsense-slot"
                       placeholder="1234567890"
                       value={adSettings.google_adsense_slot}
-                      onChange={(e) => setAdSettings(prev => ({ ...prev, google_adsense_slot: e.target.value }))}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setAdSettings(prev => ({ ...prev, google_adsense_slot: value }));
+                      }}
                       onBlur={(e) => updateAdSetting('google_adsense_slot', e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
@@ -895,7 +973,10 @@ const AdminPanel = () => {
                     <Switch
                       id="ads-responsive"
                       checked={adSettings.ads_responsive}
-                      onCheckedChange={(checked) => updateAdSetting('ads_responsive', checked)}
+                      onCheckedChange={(checked) => {
+                        setAdSettings(prev => ({ ...prev, ads_responsive: checked }));
+                        updateAdSetting('ads_responsive', checked);
+                      }}
                     />
                   </div>
 
@@ -909,7 +990,10 @@ const AdminPanel = () => {
                     <Switch
                       id="ads-mobile"
                       checked={adSettings.ads_mobile_enabled}
-                      onCheckedChange={(checked) => updateAdSetting('ads_mobile_enabled', checked)}
+                      onCheckedChange={(checked) => {
+                        setAdSettings(prev => ({ ...prev, ads_mobile_enabled: checked }));
+                        updateAdSetting('ads_mobile_enabled', checked);
+                      }}
                     />
                   </div>
                 </div>
