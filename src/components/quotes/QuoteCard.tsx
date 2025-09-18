@@ -10,25 +10,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useViewTracker } from '@/hooks/useViewTracker';
 import { toast } from '@/hooks/use-toast';
+import { ShareDialog } from './ShareDialog';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   Heart, 
   MessageCircle, 
   Share2, 
   Eye, 
-  Copy,
-  Twitter,
-  Facebook,
-  MessageSquare,
   StickyNote
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
-import { QuoteImageGenerator } from './QuoteImageGenerator';
 
 interface Quote {
   id: string;
@@ -53,11 +43,13 @@ interface QuoteCardProps {
 
 const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [likesCount, setLikesCount] = useState(quote.likes_count || 0);
   const [hasReacted, setHasReacted] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
   const [isReacting, setIsReacting] = useState(false);
   const [quoteNumber, setQuoteNumber] = useState<string>('');
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   
   // Track view when component mounts
   useViewTracker(quote.id, quote.authors.id);
@@ -220,6 +212,15 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
     setIsReacting(false);
   };
 
+  const handleShareClick = () => {
+    if (isMobile) {
+      setShareDialogOpen(true);
+    } else {
+      // Keep the old dropdown behavior for desktop
+      handleShare('copy');
+    }
+  };
+
   const handleShare = async (platform: string) => {
     const quoteUrl = `${window.location.origin}/quote/${quoteNumber}`;
     const text = `"${quote.content}" - ${quote.authors.name}`;
@@ -252,35 +253,21 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
       .update({ shares_count: (quote.shares_count || 0) + 1 })
       .eq('id', quote.id);
 
-    let shareUrl = '';
-    switch (platform) {
-      case 'copy-quote':
-        await navigator.clipboard.writeText(text);
-        toast({
-          title: "Frase copiada!",
-          description: "A frase foi copiada para a área de transferência."
-        });
-        return;
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(quoteUrl)}`;
-        break;
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(quoteUrl)}`;
-        break;
-      case 'whatsapp':
-        shareUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + quoteUrl)}`;
-        break;
-      case 'copy':
+    // For desktop quick copy
+    if (platform === 'copy' && !isMobile) {
+      try {
         await navigator.clipboard.writeText(quoteUrl);
         toast({
           title: "Link copiado!",
           description: "O link da frase foi copiado para a área de transferência."
         });
-        return;
-    }
-
-    if (shareUrl) {
-      window.open(shareUrl, '_blank', 'width=600,height=400');
+      } catch (error) {
+        toast({
+          title: "Erro ao copiar",
+          description: "Não foi possível copiar o link.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -382,45 +369,25 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             </div>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="default" className="rounded-full px-4 bg-gradient-to-r from-primary to-secondary text-white border-0 hover:from-primary/90 hover:to-secondary/90 shadow-lg">
-                <Share2 className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Compartilhar</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => handleShare('copy-quote')}>
-                <Copy className="mr-2 h-4 w-4" />
-                Copiar frase
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleShare('copy')}>
-                <Copy className="mr-2 h-4 w-4" />
-                Copiar link
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleShare('twitter')}>
-                <Twitter className="mr-2 h-4 w-4" />
-                Twitter
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleShare('facebook')}>
-                <Facebook className="mr-2 h-4 w-4" />
-                Facebook
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleShare('whatsapp')}>
-                <MessageSquare className="mr-2 h-4 w-4" />
-                WhatsApp
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <div className="w-full">
-                  <QuoteImageGenerator quote={quote} />
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button 
+            variant="outline" 
+            size="default" 
+            onClick={handleShareClick}
+            className="rounded-full px-4 bg-gradient-to-r from-primary to-secondary text-white border-0 hover:from-primary/90 hover:to-secondary/90 shadow-lg"
+          >
+            <Share2 className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Compartilhar</span>
+          </Button>
         </div>
       </CardContent>
+      
+      <ShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        quote={quote}
+        quoteNumber={quoteNumber}
+        onShare={handleShare}
+      />
     </Card>
   );
 };
