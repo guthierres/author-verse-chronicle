@@ -732,15 +732,16 @@ const AdminPanel = () => {
                       </div>
                       <div className="flex gap-2 ml-4">
                         <Button variant="destructive" size="sm" onClick={() => deleteQuote(quote.id)}>
-                          <Trash className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                           <Trash className="w-4 h-4" />
+                         </Button>
+                      </div>
+                   </CardContent>
+                 </Card>
+               ))
               ))
             )}
           </TabsContent>
+
           <TabsContent value="comments" className="space-y-4 mt-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Comentários Aprovados ({approvedComments.length})</h3>
