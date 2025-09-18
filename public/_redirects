@@ -1,2 +1,8 @@
 # Redirecionar tudo para index.html (ótimo para SPAs como React, Vue, Angular)
- /*    /index.html   200
+/*    /index.html   200
+
+# Cache busting para assets
+/assets/*  /assets/:splat  200  Cache-Control: public, max-age=31536000, immutable
+
+# Prevent caching of index.html
+/index.html  /index.html  200  Cache-Control: no-cache, no-store, must-revalidate
