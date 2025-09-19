@@ -50,6 +50,15 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
   const [isReacting, setIsReacting] = useState(false);
   const [quoteNumber, setQuoteNumber] = useState<string>('');
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [anonymousSessionId] = useState(() => {
+    // Gerar ID único para sessão anônima que persiste na sessão
+    let sessionId = sessionStorage.getItem('anonymous_session_id');
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      sessionStorage.setItem('anonymous_session_id', sessionId);
+    }
+    return sessionId;
+  });
   
   // Track view when component mounts
   useViewTracker(quote.id, quote.authors.id);
@@ -108,9 +117,15 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
         setHasReacted(data && data.length > 0);
       }
     } else {
-      // Usuário anônimo - verificar localStorage
-      const likedQuotes = JSON.parse(localStorage.getItem('liked_quotes_anon') || '[]');
-      setHasReacted(likedQuotes.includes(quote.id));
+      // Usuário anônimo - verificar na base de dados
+      const { data } = await supabase
+        .from('reactions')
+        .select('id')
+        .eq('quote_id', quote.id)
+        .eq('anonymous_session', anonymousSessionId)
+        .limit(1);
+
+      setHasReacted(data && data.length > 0);
     }
   };
 
@@ -119,78 +134,96 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
     
     setIsReacting(true);
 
-    if (user) {
-      // Usuário autenticado
-      const { data: author } = await supabase
-        .from('authors')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1);
+    try {
+      if (user) {
+        // Usuário autenticado
+        const { data: author } = await supabase
+          .from('authors')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
 
-      if (!author || author.length === 0) {
-        toast({
-          title: "Erro",
-          description: "Perfil de autor não encontrado",
-          variant: "destructive"
-        });
-        setIsReacting(false);
-        return;
-      }
-
-      if (hasReacted) {
-        // Remover curtida
-        const { error } = await supabase
-          .from('reactions')
-          .delete()
-          .eq('quote_id', quote.id)
-          .eq('author_id', author[0].id);
-
-        if (!error) {
-        // Update likes count in local state only
-        // Note: likes_count column doesn't exist in database
-        setHasReacted(false);
-        setLikesCount(prev => Math.max(0, prev - 1));
-        }
-      } else {
-        // Adicionar curtida
-        const { error } = await supabase
-          .from('reactions')
-          .insert({
-            quote_id: quote.id,
-            author_id: author[0].id
+        if (!author || author.length === 0) {
+          toast({
+            title: "Erro",
+            description: "Perfil de autor não encontrado",
+            variant: "destructive"
           });
+          setIsReacting(false);
+          return;
+        }
 
-        if (!error) {
-          // Update likes count in local state only
-          // Note: likes_count column doesn't exist in database
+        if (hasReacted) {
+          // Remover curtida
+          const { error } = await supabase
+            .from('reactions')
+            .delete()
+            .eq('quote_id', quote.id)
+            .eq('author_id', author[0].id);
 
-          setHasReacted(true);
-          setLikesCount(prev => prev + 1);
+          if (!error) {
+            setHasReacted(false);
+            setLikesCount(prev => Math.max(0, prev - 1));
+          } else {
+            console.error('Erro ao remover like:', error);
+          }
+        } else {
+          // Adicionar curtida
+          const { error } = await supabase
+            .from('reactions')
+            .insert({
+              quote_id: quote.id,
+              author_id: author[0].id
+            });
+
+          if (!error) {
+            setHasReacted(true);
+            setLikesCount(prev => prev + 1);
+          } else {
+            console.error('Erro ao adicionar like:', error);
+          }
+        }
+      } else {
+        // Usuário anônimo
+        if (hasReacted) {
+          // Remover curtida anônima
+          const { error } = await supabase
+            .from('reactions')
+            .delete()
+            .eq('quote_id', quote.id)
+            .eq('anonymous_session', anonymousSessionId);
+
+          if (!error) {
+            setHasReacted(false);
+            setLikesCount(prev => Math.max(0, prev - 1));
+          } else {
+            console.error('Erro ao remover like anônimo:', error);
+          }
+        } else {
+          // Adicionar curtida anônima
+          const { error } = await supabase
+            .from('reactions')
+            .insert({
+              quote_id: quote.id,
+              author_id: null,
+              anonymous_session: anonymousSessionId
+            });
+
+          if (!error) {
+            setHasReacted(true);
+            setLikesCount(prev => prev + 1);
+          } else {
+            console.error('Erro ao adicionar like anônimo:', error);
+          }
         }
       }
-    } else {
-      // Usuário anônimo
-      const likedQuotes = JSON.parse(localStorage.getItem('liked_quotes_anon') || '[]');
-      
-      if (hasReacted) {
-        // Remover curtida
-        const updatedLikes = likedQuotes.filter((id: string) => id !== quote.id);
-        localStorage.setItem('liked_quotes_anon', JSON.stringify(updatedLikes));
-        
-        // Update likes count in local state only
-        // Note: likes_count column doesn't exist in database
-        setHasReacted(false);
-        setLikesCount(prev => Math.max(0, prev - 1));
-      } else {
-        // Adicionar curtida
-        const updatedLikes = [...likedQuotes, quote.id];
-        localStorage.setItem('liked_quotes_anon', JSON.stringify(updatedLikes));
-        
-        // Update likes count in local state only
-        // Note: likes_count column doesn't exist in database
-        setHasReacted(true);
-        setLikesCount(prev => prev + 1);
-      }
+    } catch (error) {
+      console.error('Erro no sistema de likes:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível processar o like. Tente novamente.",
+        variant: "destructive"
+      });
     }
 
     setIsReacting(false);
