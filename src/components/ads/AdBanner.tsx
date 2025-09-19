@@ -55,12 +55,30 @@ const AdBanner = ({
         document.head.appendChild(script);
       }
 
-      // Inicializar anúncio
-      try {
-        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-      } catch (error) {
-        console.error('Erro ao inicializar anúncio:', error);
-      }
+      // Inicializar anúncio com verificação mais robusta de largura
+      const initializeAd = () => {
+        const adContainer = document.querySelector('.adsbygoogle:not([data-adsbygoogle-status])');
+        if (adContainer) {
+          const containerWidth = adContainer.clientWidth || adContainer.offsetWidth;
+          const parentWidth = adContainer.parentElement?.clientWidth || 0;
+          
+          // Verificar se o container tem largura válida
+          if (containerWidth > 0 || parentWidth > 0) {
+            try {
+              ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+            } catch (error) {
+              console.error('Erro ao inicializar anúncio:', error);
+            }
+          } else {
+            // Tentar novamente após um delay se ainda não tem largura
+            setTimeout(initializeAd, 200);
+          }
+        }
+      };
+
+      // Aguardar um pouco mais para garantir que o layout esteja pronto
+      const timer = setTimeout(initializeAd, 300);
+      return () => clearTimeout(timer);
     }
   }, [adsEnabled, adClient, adSlot]);
 
