@@ -68,20 +68,19 @@ const QuoteDetail = () => {
     // First, get all quotes and find the one with matching number
     const { data: allQuotes } = await supabase
       .from('quotes')
-      .select(`
-        id,
-        content,
-        created_at,
-        views_count,
-        shares_count,
-        likes_count,
-        authors (
+        .select(`
           id,
-          name,
-          avatar_url,
-          is_verified
-        )
-      `)
+          content,
+          created_at,
+          views_count,
+          shares_count,
+          authors (
+            id,
+            name,
+            avatar_url,
+            is_verified
+          )
+        `)
       .eq('is_approved', true)
       .eq('is_active', true);
 

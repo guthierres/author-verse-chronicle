@@ -11,7 +11,6 @@ interface TopQuote {
   id: string;
   content: string;
   views_count: number;
-  likes_count?: number;
   authors: {
     id: string;
     name: string;
@@ -39,17 +38,16 @@ export const MobileSidebar = () => {
     // Fetch top 5 most viewed quotes
     const { data: quotes } = await supabase
       .from('quotes')
-      .select(`
-        id,
-        content,
-        views_count,
-        likes_count,
-        authors (
+        .select(`
           id,
-          name,
-          avatar_url
-        )
-      `)
+          content,
+          views_count,
+          authors (
+            id,
+            name,
+            avatar_url
+          )
+        `)
       .eq('is_approved', true)
       .eq('is_active', true)
       .order('views_count', { ascending: false })

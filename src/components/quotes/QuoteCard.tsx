@@ -146,14 +146,10 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
           .eq('author_id', author[0].id);
 
         if (!error) {
-          // Decrementar likes_count na tabela quotes
-          await supabase
-            .from('quotes')
-            .update({ likes_count: Math.max(0, likesCount - 1) })
-            .eq('id', quote.id);
-
-          setHasReacted(false);
-          setLikesCount(prev => Math.max(0, prev - 1));
+        // Update likes count in local state only
+        // Note: likes_count column doesn't exist in database
+        setHasReacted(false);
+        setLikesCount(prev => Math.max(0, prev - 1));
         }
       } else {
         // Adicionar curtida
@@ -165,11 +161,8 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
           });
 
         if (!error) {
-          // Incrementar likes_count na tabela quotes
-          await supabase
-            .from('quotes')
-            .update({ likes_count: likesCount + 1 })
-            .eq('id', quote.id);
+          // Update likes count in local state only
+          // Note: likes_count column doesn't exist in database
 
           setHasReacted(true);
           setLikesCount(prev => prev + 1);
@@ -184,31 +177,19 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
         const updatedLikes = likedQuotes.filter((id: string) => id !== quote.id);
         localStorage.setItem('liked_quotes_anon', JSON.stringify(updatedLikes));
         
-        // Decrementar likes_count na tabela quotes
-        const { error } = await supabase
-          .from('quotes')
-          .update({ likes_count: Math.max(0, likesCount - 1) })
-          .eq('id', quote.id);
-
-        if (!error) {
-          setHasReacted(false);
-          setLikesCount(prev => Math.max(0, prev - 1));
-        }
+        // Update likes count in local state only
+        // Note: likes_count column doesn't exist in database
+        setHasReacted(false);
+        setLikesCount(prev => Math.max(0, prev - 1));
       } else {
         // Adicionar curtida
         const updatedLikes = [...likedQuotes, quote.id];
         localStorage.setItem('liked_quotes_anon', JSON.stringify(updatedLikes));
         
-        // Incrementar likes_count na tabela quotes
-        const { error } = await supabase
-          .from('quotes')
-          .update({ likes_count: likesCount + 1 })
-          .eq('id', quote.id);
-
-        if (!error) {
-          setHasReacted(true);
-          setLikesCount(prev => prev + 1);
-        }
+        // Update likes count in local state only
+        // Note: likes_count column doesn't exist in database
+        setHasReacted(true);
+        setLikesCount(prev => prev + 1);
       }
     }
 

@@ -17,8 +17,6 @@ interface Quote {
   created_at: string;
   views_count: number;
   shares_count: number;
-  likes_count?: number;
-  notes?: string;
   authors: {
     id: string;
     name: string;
@@ -77,8 +75,6 @@ const Timeline = () => {
           created_at,
           views_count,
           shares_count,
-          likes_count,
-          notes,
           authors (
             id,
             name,
@@ -95,21 +91,19 @@ const Timeline = () => {
         // Buscar primeiro por conteúdo da frase
         const { data: contentResults } = await supabase
           .from('quotes')
-          .select(`
-            id,
-            content,
-            created_at,
-            views_count,
-            shares_count,
-            likes_count,
-            notes,
-            authors (
+            .select(`
               id,
-              name,
-              avatar_url,
-              is_verified
-            )
-          `)
+              content,
+              created_at,
+              views_count,
+              shares_count,
+              authors (
+                id,
+                name,
+                avatar_url,
+                is_verified
+              )
+            `)
           .eq('is_approved', true)
           .eq('is_active', true)
           .ilike('content', `%${searchTerm}%`)
@@ -119,21 +113,19 @@ const Timeline = () => {
         // Buscar por nome do autor
         const { data: authorResults } = await supabase
           .from('quotes')
-          .select(`
-            id,
-            content,
-            created_at,
-            views_count,
-            shares_count,
-            likes_count,
-            notes,
-            authors!inner (
+            .select(`
               id,
-              name,
-              avatar_url,
-              is_verified
-            )
-          `)
+              content,
+              created_at,
+              views_count,
+              shares_count,
+              authors!inner (
+                id,
+                name,
+                avatar_url,
+                is_verified
+              )
+            `)
           .eq('is_approved', true)
           .eq('is_active', true)
           .ilike('authors.name', `%${searchTerm}%`)
