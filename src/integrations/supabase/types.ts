@@ -181,6 +181,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_approved: boolean | null
+          likes_count: number | null
+          notes: string | null
           shares_count: number | null
           updated_at: string
           views_count: number | null
@@ -192,6 +194,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_approved?: boolean | null
+          likes_count?: number | null
+          notes?: string | null
           shares_count?: number | null
           updated_at?: string
           views_count?: number | null
@@ -203,6 +207,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_approved?: boolean | null
+          likes_count?: number | null
+          notes?: string | null
           shares_count?: number | null
           updated_at?: string
           views_count?: number | null
@@ -219,18 +225,21 @@ export type Database = {
       }
       reactions: {
         Row: {
+          anonymous_session: string | null
           author_id: string
           created_at: string
           id: string
           quote_id: string
         }
         Insert: {
+          anonymous_session?: string | null
           author_id: string
           created_at?: string
           id?: string
           quote_id: string
         }
         Update: {
+          anonymous_session?: string | null
           author_id?: string
           created_at?: string
           id?: string
