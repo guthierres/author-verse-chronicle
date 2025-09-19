@@ -166,6 +166,11 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             setLikesCount(prev => Math.max(0, prev - 1));
           } else {
             console.error('Erro ao remover like:', error);
+            toast({
+              title: "Erro",
+              description: "Não foi possível remover o like. Tente novamente.",
+              variant: "destructive"
+            });
           }
         } else {
           // Adicionar curtida
@@ -181,6 +186,11 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             setLikesCount(prev => prev + 1);
           } else {
             console.error('Erro ao adicionar like:', error);
+            toast({
+              title: "Erro",
+              description: "Não foi possível adicionar o like. Tente novamente.",
+              variant: "destructive"
+            });
           }
         }
       } else {
@@ -198,6 +208,11 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             setLikesCount(prev => Math.max(0, prev - 1));
           } else {
             console.error('Erro ao remover like anônimo:', error);
+            toast({
+              title: "Erro",
+              description: "Não foi possível remover o like. Tente novamente.",
+              variant: "destructive"
+            });
           }
         } else {
           // Adicionar curtida anônima
@@ -214,6 +229,11 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             setLikesCount(prev => prev + 1);
           } else {
             console.error('Erro ao adicionar like anônimo:', error);
+            toast({
+              title: "Erro",
+              description: "Não foi possível adicionar o like. Tente novamente.",
+              variant: "destructive"
+            });
           }
         }
       }
@@ -225,6 +245,23 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
         variant: "destructive"
       });
     }
+
+    // Refresh the like count from database after any reaction change
+    setTimeout(async () => {
+      try {
+        const { data: updatedQuote } = await supabase
+          .from('quotes')
+          .select('likes_count')
+          .eq('id', quote.id)
+          .single();
+        
+        if (updatedQuote) {
+          setLikesCount(updatedQuote.likes_count || 0);
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar contagem de likes:', error);
+      }
+    }, 500);
 
     setIsReacting(false);
   };
