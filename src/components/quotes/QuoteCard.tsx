@@ -12,11 +12,11 @@ import { useViewTracker } from '@/hooks/useViewTracker';
 import { toast } from '@/hooks/use-toast';
 import { ShareDialog } from './ShareDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { 
-  Heart, 
-  MessageCircle, 
-  Share2, 
-  Eye, 
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  Eye,
   StickyNote
 } from 'lucide-react';
 
@@ -163,7 +163,6 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
 
           if (!error) {
             setHasReacted(false);
-            setLikesCount(prev => Math.max(0, prev - 1));
           } else {
             console.error('Erro ao remover like:', error);
             toast({
@@ -178,12 +177,12 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             .from('reactions')
             .insert({
               quote_id: quote.id,
-              author_id: author[0].id
+              author_id: author[0].id,
+              anonymous_session: null
             });
 
           if (!error) {
             setHasReacted(true);
-            setLikesCount(prev => prev + 1);
           } else {
             console.error('Erro ao adicionar like:', error);
             toast({
@@ -205,7 +204,6 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
 
           if (!error) {
             setHasReacted(false);
-            setLikesCount(prev => Math.max(0, prev - 1));
           } else {
             console.error('Erro ao remover like anônimo:', error);
             toast({
@@ -226,7 +224,6 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
 
           if (!error) {
             setHasReacted(true);
-            setLikesCount(prev => prev + 1);
           } else {
             console.error('Erro ao adicionar like anônimo:', error);
             toast({
@@ -246,22 +243,22 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
       });
     }
 
-    // Refresh the like count from database after any reaction change
+    // Aguardar um pouco e então buscar a contagem atualizada do banco
     setTimeout(async () => {
       try {
-        const { data: updatedQuote } = await supabase
+        const { data: updatedQuote, error } = await supabase
           .from('quotes')
           .select('likes_count')
           .eq('id', quote.id)
           .single();
         
-        if (updatedQuote) {
+        if (!error && updatedQuote) {
           setLikesCount(updatedQuote.likes_count || 0);
         }
       } catch (error) {
         console.error('Erro ao atualizar contagem de likes:', error);
       }
-    }, 500);
+    }, 1000);
 
     setIsReacting(false);
   };
@@ -350,8 +347,8 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
           </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
-              <Link 
-                to={`/author/${quote.authors.id}`} 
+              <Link
+                to={`/author/${quote.authors.id}`}
                 className="font-semibold hover:text-primary transition-colors text-base sm:text-lg truncate"
               >
                 {quote.authors.name}
@@ -372,7 +369,7 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             "{displayContent}".
           </blockquote>
           {shouldTruncate && (
-            <Link 
+            <Link
               to={`/quote/${quoteNumber}`}
               className="inline-block mt-3 text-primary hover:underline font-semibold text-sm"
             >
@@ -418,9 +415,9 @@ const QuoteCard = ({ quote, showFullContent = false }: QuoteCardProps) => {
             </div>
           </div>
 
-          <Button 
-            variant="outline" 
-            size="default" 
+          <Button
+            variant="outline"
+            size="default"
             onClick={handleShareClick}
             className="rounded-full px-4 bg-gradient-to-r from-primary to-secondary text-white border-0 hover:from-primary/90 hover:to-secondary/90 shadow-lg"
           >
