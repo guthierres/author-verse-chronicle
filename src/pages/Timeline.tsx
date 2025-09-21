@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import QuoteCard from '@/components/quotes/QuoteCard';
+import AdBanner from '@/components/ads/AdBanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search, Plus, Filter, X } from 'lucide-react';
@@ -27,6 +28,30 @@ interface Quote {
 
 const PAGE_SIZE = 10;
 
+// Sample ad data for demonstration
+const sampleAds = [
+  {
+    title: "Livros Inspiradores",
+    description: "Descubra os melhores livros de desenvolvimento pessoal",
+    imageUrl: "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=300&h=200",
+    linkUrl: "#",
+    sponsor: "Livraria Inspiração"
+  },
+  {
+    title: "Curso de Mindfulness",
+    description: "Aprenda técnicas de meditação e bem-estar",
+    imageUrl: "https://images.pexels.com/photos/3822622/pexels-photo-3822622.jpeg?auto=compress&cs=tinysrgb&w=300&h=200",
+    linkUrl: "#",
+    sponsor: "Centro de Bem-Estar"
+  },
+  {
+    title: "App de Produtividade",
+    description: "Organize sua vida com nossa ferramenta inovadora",
+    imageUrl: "https://images.pexels.com/photos/590016/pexels-photo-590016.jpg?auto=compress&cs=tinysrgb&w=300&h=200",
+    linkUrl: "#",
+    sponsor: "TechFlow"
+  }
+];
 const Timeline = () => {
   const { user } = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -55,6 +80,17 @@ const Timeline = () => {
     fetchQuotes(0);
   }, [debouncedSearchTerm]);
 
+  // Function to remove duplicates based on quote ID
+  const removeDuplicateQuotes = (quotesArray: Quote[]) => {
+    const seen = new Set();
+    return quotesArray.filter(quote => {
+      if (seen.has(quote.id)) {
+        return false;
+      }
+      seen.add(quote.id);
+      return true;
+    });
+  };
   const fetchQuotes = async (currentPage = 0) => {
     const from = currentPage * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
@@ -134,9 +170,7 @@ const Timeline = () => {
 
         // Combinar resultados e remover duplicatas
         const allResults = [...(contentResults || []), ...(authorResults || [])];
-        const uniqueResults = allResults.filter((quote, index, self) => 
-          index === self.findIndex(q => q.id === quote.id)
-        );
+        const uniqueResults = removeDuplicateQuotes(allResults);
 
         // Ordenar por data de criação
         uniqueResults.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -145,13 +179,7 @@ const Timeline = () => {
           setQuotes(uniqueResults);
           setSearchResults(uniqueResults.length);
         } else {
-          setQuotes(prevQuotes => {
-            const combined = [...prevQuotes, ...uniqueResults];
-            const unique = combined.filter((quote, index, self) => 
-              index === self.findIndex(q => q.id === quote.id)
-            );
-            return unique;
-          });
+          setQuotes(prevQuotes => removeDuplicateQuotes([...prevQuotes, ...uniqueResults]));
         }
         
         setPage(currentPage + 1);
@@ -177,7 +205,7 @@ const Timeline = () => {
           setQuotes(data || []);
           setSearchResults(0); // Reset search results for normal browsing
         } else {
-          setQuotes(prevQuotes => [...prevQuotes, ...(data || [])]);
+          setQuotes(prevQuotes => removeDuplicateQuotes([...prevQuotes, ...(data || [])]));
         }
         
         const dataLength = (data || []).length;
@@ -207,6 +235,34 @@ const Timeline = () => {
     setSearchResults(0);
   };
 
+  // Function to render quotes with ads interspersed
+  const renderQuotesWithAds = () => {
+    const elements = [];
+    
+    quotes.forEach((quote, index) => {
+      elements.push(
+        <QuoteCard key={quote.id} quote={quote} />
+      );
+      
+      // Add ad every 4 quotes (after positions 3, 7, 11, etc.)
+      if ((index + 1) % 4 === 0 && index < quotes.length - 1) {
+        const adIndex = Math.floor(index / 4) % sampleAds.length;
+        const adData = sampleAds[adIndex];
+        
+        elements.push(
+          <div key={`ad-${index}`}>
+            <AdBanner 
+              type="generic" 
+              adData={adData}
+              className="my-8"
+            />
+          </div>
+        );
+      }
+    });
+    
+    return elements;
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-primary/5">
       {/* Hero Section */}
@@ -290,9 +346,7 @@ const Timeline = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : quotes.length > 0 ? (
-              quotes.map((quote) => (
-                <QuoteCard key={quote.id} quote={quote} />
-              ))
+              renderQuotesWithAds()
             ) : (
               <div className="text-center py-12">
                 <Quote className="w-16 h-16 mx-auto text-muted-foreground mb-4" />

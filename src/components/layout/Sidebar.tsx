@@ -28,6 +28,23 @@ interface PopularAuthor {
   total_views: number;
 }
 
+// Sample ads for sidebar
+const sidebarAds = [
+  {
+    title: "Diário de Gratidão",
+    description: "Transforme sua vida com práticas diárias de gratidão",
+    imageUrl: "https://images.pexels.com/photos/6373478/pexels-photo-6373478.jpeg?auto=compress&cs=tinysrgb&w=300&h=200",
+    linkUrl: "#",
+    sponsor: "Vida Plena"
+  },
+  {
+    title: "Podcast Inspiração",
+    description: "Ouça histórias que transformam vidas",
+    imageUrl: "https://images.pexels.com/photos/7045933/pexels-photo-7045933.jpeg?auto=compress&cs=tinysrgb&w=300&h=200",
+    linkUrl: "#",
+    sponsor: "Audio Inspiração"
+  }
+];
 const Sidebar = () => {
   const [popularQuotes, setPopularQuotes] = useState<PopularQuote[]>([]);
   const [popularAuthors, setPopularAuthors] = useState<PopularAuthor[]>([]);
@@ -165,6 +182,12 @@ const Sidebar = () => {
         </CardContent>
       </Card>
 
+      {/* Generic Ad */}
+      <AdBanner 
+        type="generic"
+        adData={sidebarAds[0]}
+        className="w-full"
+      />
       {/* Popular Authors */}
       <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800">
         <CardHeader className="pb-3">
@@ -211,10 +234,10 @@ const Sidebar = () => {
         </CardContent>
       </Card>
 
-      {/* Another Ad Banner */}
+      {/* Another Generic Ad */}
       <AdBanner 
-        format="rectangle" 
-        responsive={true}
+        type="generic"
+        adData={sidebarAds[1]}
         className="w-full"
       />
     </aside>

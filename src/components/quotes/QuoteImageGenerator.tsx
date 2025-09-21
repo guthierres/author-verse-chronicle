@@ -22,28 +22,63 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Paletas de cores predefinidas para degradês aleatórios
+  // Paletas de cores expandidas com mais variedade
   const colorPalettes = [
-    // Sunset
+    // Sunset Collection
     ['hsl(14, 80%, 60%)', 'hsl(21, 85%, 65%)', 'hsl(35, 90%, 70%)'],
-    // Ocean
+    ['hsl(340, 75%, 65%)', 'hsl(15, 80%, 60%)', 'hsl(45, 85%, 70%)'],
+    ['hsl(25, 70%, 55%)', 'hsl(40, 75%, 60%)', 'hsl(55, 80%, 65%)'],
+    
+    // Ocean Collection
     ['hsl(200, 70%, 50%)', 'hsl(220, 75%, 55%)', 'hsl(240, 80%, 60%)'],
-    // Forest
+    ['hsl(180, 65%, 45%)', 'hsl(200, 70%, 50%)', 'hsl(220, 75%, 55%)'],
+    ['hsl(190, 80%, 50%)', 'hsl(210, 85%, 55%)', 'hsl(230, 90%, 60%)'],
+    
+    // Forest Collection
     ['hsl(120, 60%, 45%)', 'hsl(140, 65%, 50%)', 'hsl(160, 70%, 55%)'],
-    // Purple Dream
+    ['hsl(100, 55%, 40%)', 'hsl(120, 60%, 45%)', 'hsl(140, 65%, 50%)'],
+    ['hsl(150, 70%, 50%)', 'hsl(170, 75%, 55%)', 'hsl(190, 80%, 60%)'],
+    
+    // Purple Dreams
     ['hsl(280, 70%, 60%)', 'hsl(300, 75%, 65%)', 'hsl(320, 80%, 70%)'],
+    ['hsl(260, 65%, 55%)', 'hsl(280, 70%, 60%)', 'hsl(300, 75%, 65%)'],
+    ['hsl(270, 80%, 65%)', 'hsl(290, 85%, 70%)', 'hsl(310, 90%, 75%)'],
+    
     // Warm Earth
     ['hsl(25, 65%, 55%)', 'hsl(35, 70%, 60%)', 'hsl(45, 75%, 65%)'],
+    ['hsl(30, 60%, 50%)', 'hsl(40, 65%, 55%)', 'hsl(50, 70%, 60%)'],
+    
     // Cool Mint
     ['hsl(160, 60%, 50%)', 'hsl(180, 65%, 55%)', 'hsl(200, 70%, 60%)'],
+    ['hsl(170, 70%, 55%)', 'hsl(190, 75%, 60%)', 'hsl(210, 80%, 65%)'],
+    
     // Rose Gold
     ['hsl(340, 60%, 65%)', 'hsl(20, 70%, 70%)', 'hsl(40, 75%, 75%)'],
+    ['hsl(330, 65%, 60%)', 'hsl(10, 75%, 65%)', 'hsl(30, 80%, 70%)'],
+    
     // Deep Space
     ['hsl(240, 80%, 40%)', 'hsl(260, 85%, 45%)', 'hsl(280, 90%, 50%)'],
-    // Autumn
-    ['hsl(15, 75%, 55%)', 'hsl(30, 80%, 60%)', 'hsl(45, 85%, 65%)'],
-    // Tropical
-    ['hsl(180, 70%, 50%)', 'hsl(160, 75%, 55%)', 'hsl(140, 80%, 60%)']
+    ['hsl(220, 75%, 35%)', 'hsl(240, 80%, 40%)', 'hsl(260, 85%, 45%)'],
+    
+    // Tropical Vibes
+    ['hsl(180, 70%, 50%)', 'hsl(160, 75%, 55%)', 'hsl(140, 80%, 60%)'],
+    ['hsl(170, 75%, 55%)', 'hsl(150, 80%, 60%)', 'hsl(130, 85%, 65%)'],
+    
+    // Fire Collection
+    ['hsl(0, 85%, 60%)', 'hsl(15, 90%, 65%)', 'hsl(30, 95%, 70%)'],
+    ['hsl(350, 80%, 55%)', 'hsl(5, 85%, 60%)', 'hsl(20, 90%, 65%)'],
+    
+    // Ice Collection
+    ['hsl(200, 60%, 70%)', 'hsl(220, 65%, 75%)', 'hsl(240, 70%, 80%)'],
+    ['hsl(190, 70%, 65%)', 'hsl(210, 75%, 70%)', 'hsl(230, 80%, 75%)'],
+    
+    // Neon Collection
+    ['hsl(300, 90%, 60%)', 'hsl(280, 95%, 65%)', 'hsl(260, 100%, 70%)'],
+    ['hsl(120, 85%, 55%)', 'hsl(140, 90%, 60%)', 'hsl(160, 95%, 65%)'],
+    
+    // Vintage Collection
+    ['hsl(40, 50%, 60%)', 'hsl(30, 55%, 55%)', 'hsl(20, 60%, 50%)'],
+    ['hsl(60, 45%, 65%)', 'hsl(50, 50%, 60%)', 'hsl(40, 55%, 55%)']
   ];
 
   const getRandomPalette = () => {
@@ -69,24 +104,33 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
     // Canvas dimensions based on format
     let canvasWidth, canvasHeight;
     if (format === 'square') {
-      canvasWidth = canvasHeight = 1080; // Instagram post format
+      canvasWidth = canvasHeight = 800; // Reduced size for better performance
     } else {
-      canvasWidth = 1080;
-      canvasHeight = 1920; // Instagram story format
+      canvasWidth = 600;
+      canvasHeight = 1067; // Reduced story format (9:16 ratio)
     }
 
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
-    // Enable high DPI rendering
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width *= dpr;
-    canvas.height *= dpr;
-    ctx.scale(dpr, dpr);
+    // Simplified rendering without DPI scaling for better performance
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     
-    // Create random gradient background
+    // Create random gradient background with more variety
     const palette = getRandomPalette();
-    const gradient = ctx.createLinearGradient(0, 0, canvasWidth, canvasHeight);
+    
+    // Random gradient direction for more variety
+    const gradientTypes = [
+      () => ctx.createLinearGradient(0, 0, canvasWidth, canvasHeight), // Diagonal
+      () => ctx.createLinearGradient(0, 0, canvasWidth, 0), // Horizontal
+      () => ctx.createLinearGradient(0, 0, 0, canvasHeight), // Vertical
+      () => ctx.createRadialGradient(canvasWidth/2, canvasHeight/2, 0, canvasWidth/2, canvasHeight/2, Math.max(canvasWidth, canvasHeight)/2), // Radial
+    ];
+    
+    const randomGradientType = gradientTypes[Math.floor(Math.random() * gradientTypes.length)];
+    const gradient = randomGradientType();
+    
     gradient.addColorStop(0, palette[0]);
     gradient.addColorStop(0.5, palette[1]);
     gradient.addColorStop(1, palette[2]);
@@ -94,26 +138,76 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // Add subtle pattern overlay for texture
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-    for (let i = 0; i < canvasWidth; i += 60) {
-      for (let j = 0; j < canvasHeight; j += 60) {
+    // Add varied pattern overlays for texture
+    const patternType = Math.floor(Math.random() * 3);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+    
+    if (patternType === 0) {
+      // Dots pattern
+      for (let i = 0; i < canvasWidth; i += 80) {
+        for (let j = 0; j < canvasHeight; j += 80) {
+          ctx.beginPath();
+          ctx.arc(i, j, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    } else if (patternType === 1) {
+      // Lines pattern
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < canvasWidth; i += 100) {
         ctx.beginPath();
-        ctx.arc(i, j, 1, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvasHeight);
+        ctx.stroke();
       }
     }
 
-    // Add subtle geometric overlay
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 5; i++) {
-      const x = Math.random() * canvasWidth;
-      const y = Math.random() * canvasHeight;
-      const size = 50 + Math.random() * 100;
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.stroke();
+    // Add varied geometric overlays
+    const geometryType = Math.floor(Math.random() * 4);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.lineWidth = 2;
+    
+    if (geometryType === 0) {
+      // Circles
+      for (let i = 0; i < 4; i++) {
+        const x = Math.random() * canvasWidth;
+        const y = Math.random() * canvasHeight;
+        const size = 30 + Math.random() * 80;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (geometryType === 1) {
+      // Triangles
+      for (let i = 0; i < 3; i++) {
+        const x = Math.random() * canvasWidth;
+        const y = Math.random() * canvasHeight;
+        const size = 40 + Math.random() * 60;
+        ctx.beginPath();
+        ctx.moveTo(x, y - size);
+        ctx.lineTo(x - size, y + size);
+        ctx.lineTo(x + size, y + size);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    } else if (geometryType === 2) {
+      // Hexagons
+      for (let i = 0; i < 3; i++) {
+        const x = Math.random() * canvasWidth;
+        const y = Math.random() * canvasHeight;
+        const size = 25 + Math.random() * 50;
+        ctx.beginPath();
+        for (let j = 0; j < 6; j++) {
+          const angle = (j * Math.PI) / 3;
+          const px = x + size * Math.cos(angle);
+          const py = y + size * Math.sin(angle);
+          if (j === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
     }
 
     // Add ParaFrase logo area (simplified geometric representation)
@@ -294,12 +388,12 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
     const formatName = format === 'square' ? 'post' : 'story';
     const link = document.createElement('a');
     link.download = `parafrase-${formatName}-${quote.authors.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png', 1.0);
+    link.href = canvas.toDataURL('image/jpeg', 0.9); // JPEG with 90% quality for smaller file size
     link.click();
 
     toast({
       title: "Imagem gerada!",
-      description: `Imagem para ${format === 'square' ? 'postagem' : 'story'} baixada com sucesso.`
+      description: `Imagem otimizada para ${format === 'square' ? 'postagem' : 'story'} baixada com sucesso.`
     });
 
     setIsGenerating(false);
@@ -328,7 +422,7 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
               </div>
               <div className="flex-1">
                 <p className="font-medium">Formato Quadrado</p>
-                <p className="text-xs text-muted-foreground">Ideal para posts (1080x1080)</p>
+                <p className="text-xs text-muted-foreground">Ideal para posts (800x800)</p>
               </div>
             </div>
           </DropdownMenuItem>
@@ -339,7 +433,7 @@ export const QuoteImageGenerator = ({ quote }: QuoteImageGeneratorProps) => {
               </div>
               <div className="flex-1">
                 <p className="font-medium">Formato Story</p>
-                <p className="text-xs text-muted-foreground">Ideal para stories (1080x1920)</p>
+                <p className="text-xs text-muted-foreground">Ideal para stories (600x1067)</p>
               </div>
             </div>
           </DropdownMenuItem>
